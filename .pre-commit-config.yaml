@@ -20,6 +20,7 @@ repos:
         language_version: python3.6
         additional_dependencies:
           - pytest
+          - requests
 
 -   repo: https://github.com/pre-commit/mirrors-pylint
     rev: v1.9.1
@@ -29,6 +30,7 @@ repos:
         language_version: python2.7
         additional_dependencies:
           - pytest
+          - requests
 
 -   repo: https://github.com/python/black
     rev: stable

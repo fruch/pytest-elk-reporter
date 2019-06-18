@@ -75,5 +75,5 @@ target/
 # virtualenvs
 .venv*
 
-# vscode 
+# vscode
 .vscode

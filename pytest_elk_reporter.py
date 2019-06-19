@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import os
 import getpass
 import socket
 import datetime
@@ -65,50 +66,45 @@ class ElkReporter(object):
             )
         else:
             self.es_url = "http://{0.es_address}".format(self)
-        self.stats = {"passed": 0, "failed": 0, "error": 0}
-        # self.git_data = dict()  # TODO: add pluging for all types of user data
-        # self.jenkins_data = dict()
+        self.stats = dict.fromkeys(
+            ["error", "passed", "failure", "skipped", "xfailed"], 0
+        )
         self.session_data = dict(
             username=getpass.getuser(), hostname=socket.gethostname()
         )
-        # self.local_test_data = dict()
         self.suite_start_time = ""
 
     def pytest_runtest_logreport(self, report):
         if report.passed:
             if report.when == "call":
-                self.stats["passed"] += 1
-                test_data = dict(
-                    timestamp=datetime.datetime.utcnow().isoformat(),
-                    name=report.nodeid,
-                    outcome="passed",
-                    duration=report.duration,
-                    **self.session_data
-                )
-                self.post_test_results(test_data)
+                self.report_test(report, "passed")
         elif report.failed:
             if report.when == "teardown":
                 pass
             if report.when == "call":
-                self.stats["failed"] += 1
-                test_data = dict(
-                    timestamp=datetime.datetime.utcnow().isoformat(),
-                    name=report.nodeid,
-                    outcome="failed",
-                    duration=report.duration,
-                    **self.session_data
-                )
-                self.post_test_results(test_data)
+                self.report_test(report, "failure")
             else:
-                self.stats["error"] += 1
-                test_data = dict(
-                    timestamp=datetime.datetime.utcnow().isoformat(),
-                    name=report.nodeid,
-                    outcome="error",
-                    duration=report.duration,
-                    **self.session_data
-                )
-                self.post_test_results(test_data)
+                self.report_test(report, "error")
+        elif report.skipped:
+            if getattr(report, "wasxfail", None) is not None:
+                self.report_test(report, "xfailed")
+            else:
+                self.report_test(report, "skipped")
+
+    def report_test(self, item_report, outcome):
+        self.stats[outcome] += 1
+        test_data = dict(
+            timestamp=datetime.datetime.utcnow().isoformat(),
+            name=item_report.nodeid,
+            outcome=outcome,
+            duration=item_report.duration,
+            **self.session_data
+        )
+        longreprtext = getattr(item_report, "longreprtext", None)
+        if longreprtext:
+            test_data.update(failure_message=longreprtext)
+
+        self.post_to_elasticsearch(test_data)
 
     def pytest_sessionstart(self):
         self.suite_start_time = datetime.datetime.utcnow().isoformat()
@@ -116,11 +112,27 @@ class ElkReporter(object):
     def pytest_sessionfinish(self):
         print(self.stats)
 
-    def post_test_results(self, test_data):
-        res = requests.post(self.es_url + "/test_stats/_doc", json=test_data)
+    def post_to_elasticsearch(self, test_data):
+        res = requests.post(
+            self.es_url + "/test_stats/_doc", json=test_data
+        )  # TODO: have test_stats as configuration
         res.raise_for_status()
 
 
 @pytest.fixture
 def elk_reporter(request):
     return request.config.pluginmanager.get_plugin("elk-reporter-runtime")
+
+
+@pytest.fixture(autouse=True)
+def jenkins_data(request):
+    """
+    Append jenkins job and user data into results session
+    """
+    # TODO: maybe filter some, like password and such ?
+    jenkins_env = {
+        k.lower(): v for k, v in os.environ.items() if k.startswith("JENKINS_")
+    }
+
+    elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
+    elk.session_data.update(**jenkins_env)

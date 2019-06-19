@@ -2,11 +2,11 @@
 pytest-elk-reporter
 ===================
 
-.. image:: https://img.shields.io/pypi/v/pytest-elk-reporter.svg
+.. image:: https://img.shields.io/pypi/v/pytest-elk-reporter.svg?style=flat
     :target: https://pypi.org/project/pytest-elk-reporter
     :alt: PyPI version
 
-.. image:: https://img.shields.io/pypi/pyversions/pytest-elk-reporter.svg
+.. image:: https://img.shields.io/pypi/pyversions/pytest-elk-reporter.svg?style=flat
     :target: https://pypi.org/project/pytest-elk-reporter
     :alt: Python versions
 
@@ -14,12 +14,13 @@ pytest-elk-reporter
     :target: https://travis-ci.org/fruch/pytest-elk-reporter
     :alt: See Build Status on Travis CI
 
-.. image:: https://ci.appveyor.com/api/projects/status/github/fruch/pytest-elk-reporter?branch=master
+.. image:: https://img.shields.io/appveyor/ci/fruch/pytest-elk-reporter/master.svg?style=flat
     :target: https://ci.appveyor.com/project/fruch/pytest-elk-reporter/branch/master
     :alt: See Build Status on AppVeyor
 
-.. image:: https://pepy.tech/badge/pytest-elk-reporter
-    :target: https://pepy.tech/project/pytest-elk-reporter
+.. image:: https://img.shields.io/librariesio/github/fruch/pytest-elk-reporter.svg?style=flat
+    :target: https://libraries.io/github/fruch/pytest-elk-reporter
+    :alt: Libraries.io dependency status for GitHub repo
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/python/black
@@ -27,6 +28,7 @@ pytest-elk-reporter
 
 .. image:: https://coveralls.io/repos/github/fruch/pytest-elk-reporter/badge.svg?branch=master
     :target: https://coveralls.io/github/fruch/pytest-elk-reporter?branch=master
+    :alt: Coverage Reports
 
 
 A plugin to send pytest test results to ELK stack

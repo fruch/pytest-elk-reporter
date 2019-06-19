@@ -18,7 +18,15 @@ pytest-elk-reporter
     :target: https://ci.appveyor.com/project/fruch/pytest-elk-reporter/branch/master
     :alt: See Build Status on AppVeyor
 
-A simple plugin to use with pytest
+.. image:: https://pepy.tech/badge/pytest-elk-reporter
+    :target: https://pepy.tech/project/pytest-elk-reporter
+    :alt: Downloads from PyPI
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/python/black
+    :alt: Using Black
+
+A plugin to send pytest test results to ELK stack
 
 ----
 

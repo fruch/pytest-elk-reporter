@@ -21,7 +21,8 @@ matrix:
       - python: pypy
         env: TOX_ENV=pypy
       - python: 3.6
-        env: TOX_ENV=flake8
+        env: TOX_ENV=pre-commit
+        name: pre-commit run
 
 before_install:
   - docker-compose up -d

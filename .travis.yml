@@ -3,9 +3,6 @@
 sudo: false
 language: python
 
-services:
-  - docker
-
 matrix:
     include:
       - python: 2.7
@@ -23,9 +20,6 @@ matrix:
       - python: 3.6
         env: TOX_ENV=pre-commit
         name: pre-commit run
-
-before_install:
-  - docker-compose up -d
 
 install:
   - pip install tox

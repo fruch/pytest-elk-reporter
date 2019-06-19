@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+
+import pytest
+
+
+@pytest.fixture(scope="function", autouse=True)
+def configure_es_mock(requests_mock):
+    matcher = re.compile(r"http://127.0.0.1:9200/.*")
+    requests_mock.post(matcher, text="data", status_code=201)
 
 
 def test_failures(testdir):

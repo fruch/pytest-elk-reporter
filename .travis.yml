@@ -28,6 +28,7 @@ cache:
   - "$HOME/.cache/pip"
 deploy:
   provider: pypi
+  distributions: "sdist bdist_wheel"
   skip_cleanup: true
   skip_existing: true
   user: fruch

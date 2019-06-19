@@ -26,10 +26,9 @@ pytest-elk-reporter
     :target: https://github.com/python/black
     :alt: Using Black
 
-.. image:: https://coveralls.io/repos/github/fruch/pytest-elk-reporter/badge.svg?branch=master
-    :target: https://coveralls.io/github/fruch/pytest-elk-reporter?branch=master
-    :alt: Coverage Reports
-
+.. image:: https://codecov.io/gh/fruch/pytest-elk-reporter/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/fruch/pytest-elk-reporter
+    :alt: Codecov Reports
 
 A plugin to send pytest test results to ELK stack
 

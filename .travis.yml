@@ -1,35 +1,35 @@
-# Config file for automatic testing at travis-ci.org
-
 sudo: false
 language: python
-
 matrix:
-    include:
-      - python: 2.7
-        env: TOX_ENV=py27
-      - python: 3.4
-        env: TOX_ENV=py34
-      - python: 3.5
-        env: TOX_ENV=py35
-      - python: 3.6
-        env: TOX_ENV=py36
-      - python: 3.7
-        env: TOX_ENV=py37
-      - python: pypy
-        env: TOX_ENV=pypy
-      - python: 3.6
-        env: TOX_ENV=pre-commit
-        name: pre-commit run
-
+  include:
+  - python: 2.7
+    env: TOX_ENV=py27
+  - python: 3.4
+    env: TOX_ENV=py34
+  - python: 3.5
+    env: TOX_ENV=py35
+  - python: 3.6
+    env: TOX_ENV=py36
+  - python: 3.7
+    env: TOX_ENV=py37
+  - python: pypy
+    env: TOX_ENV=pypy
+  - python: 3.6
+    env: TOX_ENV=pre-commit
+    name: pre-commit run
 install:
-  - pip install tox
-
+- pip install tox
 script:
-  - tox -e $TOX_ENV
-
+- tox -e $TOX_ENV
 before_cache:
-  - rm -rf $HOME/.cache/pip/log
-
+- rm -rf $HOME/.cache/pip/log
 cache:
   directories:
-    - $HOME/.cache/pip
+  - "$HOME/.cache/pip"
+deploy:
+  provider: pypi
+  user: fruch
+  on:
+    tags: true
+  password:
+    secure: M+ZqAsZQ1Rj1J/eTbINyj8Vy1utIs0hKdjUuMks1zj01M3ykecTyfIxR7LLtUrIDubXlYf2N3eCRE5i/52vVstIBDeoJg5LMSMOCl1GkgR1ma1b+oe9KoMrj1DxnLARxWfLVMawtjIfVLl+VR2zwwpjiaWlr90fKOIILjpdggdzsgBkBlLArC5vVaBy5TwTac9yaoiPQFzZe7ER6RcGh3/TlOWYZethRne5o98HhKBH4MWBEx5xcZcHDKYFXdUIsmOdrxfkFq5URmNP8B9kt3r6KMegIsvihDj5cTmh/NzelqSDRMjNcu76h60rB5FVKVbCugRxcBx/EwteR5RT3rVueS6CLbzn6s8wuNARr7qCc2ic08nW11u8Fd+T4bNiEs2hpstNKrFPNxBrVKzaIDDjBDOK8cZzVOcMIWo7rx3+75wG9WO1DuPnRMu6LO6DTO57r7RSyMUBXKHfor34nFIr/t+Kw6Y8QZiTf56Yb+a7hZzFinOPq9SIUP2Mli5JlmOcoYpXGeWQZUnJZKzrWVP26xoSVEWbCzSBcPx/YjiXGF+mbH1LoEWS76Qz06Y/0dxcKJUzRH6qLOfYteWUo6AHwsT5r7nHvmOv5sGG+rgksk8dxOQVMmwuICzY5dgPtRZoibCTfZy+JhoN3IgKtUzhKn1+9WTxTwSkk34lWfMo=

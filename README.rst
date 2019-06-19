@@ -20,11 +20,14 @@ pytest-elk-reporter
 
 .. image:: https://pepy.tech/badge/pytest-elk-reporter
     :target: https://pepy.tech/project/pytest-elk-reporter
-    :alt: Downloads from PyPI
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/python/black
     :alt: Using Black
+
+.. image:: https://coveralls.io/repos/github/fruch/pytest-elk-reporter/badge.svg?branch=master
+    :target: https://coveralls.io/github/fruch/pytest-elk-reporter?branch=master
+
 
 A plugin to send pytest test results to ELK stack
 

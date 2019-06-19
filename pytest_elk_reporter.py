@@ -55,6 +55,16 @@ def pytest_unconfigure(config):
         config.pluginmanager.unregister(elk)
 
 
+def get_username():
+    try:
+        return getpass.getuser()
+    except ImportError:
+        # seem like our friends in AppVeyor took security into a new level,
+        # and no username env vars casues getpass to go crazy
+        # https://github.com/python-cmd2/cmd2/pull/372/files#diff-ed451f9960c50a6a096b11155fdbfc1dR325
+        return "AppVeyorIt'sWeirdNotToHaveUserName"
+
+
 class ElkReporter(object):
     def __init__(self, es_address, es_username, es_password):
         self.es_address = es_address
@@ -63,9 +73,7 @@ class ElkReporter(object):
         self.stats = dict.fromkeys(
             ["error", "passed", "failure", "skipped", "xfailed"], 0
         )
-        self.session_data = dict(
-            username=getpass.getuser(), hostname=socket.gethostname()
-        )
+        self.session_data = dict(username=get_username(), hostname=socket.gethostname())
         self.suite_start_time = ""
 
     @property

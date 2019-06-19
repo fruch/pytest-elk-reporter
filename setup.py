@@ -24,6 +24,8 @@ setup(
     long_description=read("README.rst"),
     py_modules=["pytest_elk_reporter"],
     python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*",
+    use_scm_version=True,
+    setup_requires=["setuptools_scm"],
     install_requires=["pytest>=3.5.0", "requests"],
     classifiers=[
         "Development Status :: 4 - Beta",

@@ -103,3 +103,28 @@ def test_jenkins_env_collection(testdir):
     result.stdout.fnmatch_lines(["*::test_collection_elk PASSED*"])
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
+
+
+def test_setup_es_from_code(testdir):
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        @pytest.fixture(scope='session', autouse=True)
+        def configure_es(elk_reporter):
+            elk_reporter.es_address = "127.0.0.1:9200"
+            elk_reporter.es_user = None
+            elk_reporter.es_password = None
+
+        def test_should_pass():
+            pass
+        """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0

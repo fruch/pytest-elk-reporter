@@ -60,12 +60,6 @@ class ElkReporter(object):
         self.es_address = es_address
         self.es_username = es_username
         self.es_password = es_password
-        if es_username and es_password:
-            self.es_url = "http://{0.es_username}:{0.es_password}@{0.es_address}".format(
-                self
-            )
-        else:
-            self.es_url = "http://{0.es_address}".format(self)
         self.stats = dict.fromkeys(
             ["error", "passed", "failure", "skipped", "xfailed"], 0
         )
@@ -73,6 +67,12 @@ class ElkReporter(object):
             username=getpass.getuser(), hostname=socket.gethostname()
         )
         self.suite_start_time = ""
+
+    @property
+    def es_url(self):
+        if self.es_username and self.es_password:
+            return "http://{0.es_username}:{0.es_password}@{0.es_address}".format(self)
+        return "http://{0.es_address}".format(self)
 
     def pytest_runtest_logreport(self, report):
         if report.passed:
@@ -113,18 +113,19 @@ class ElkReporter(object):
         print(self.stats)
 
     def post_to_elasticsearch(self, test_data):
-        res = requests.post(
-            self.es_url + "/test_stats/_doc", json=test_data
-        )  # TODO: have test_stats as configuration
-        res.raise_for_status()
+        if self.es_address:
+            res = requests.post(
+                self.es_url + "/test_stats/_doc", json=test_data
+            )  # TODO: have test_stats as configuration
+            res.raise_for_status()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def elk_reporter(request):
     return request.config.pluginmanager.get_plugin("elk-reporter-runtime")
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def jenkins_data(request):
     """
     Append jenkins job and user data into results session

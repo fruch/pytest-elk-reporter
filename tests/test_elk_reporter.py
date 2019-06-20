@@ -41,6 +41,14 @@ def test_failures(testdir):
         def test_xfail():
             raise Exception("this test should fail")
 
+        @pytest.mark.xfail()
+        def test_xpass():
+            pass
+
+        @pytest.mark.xfail(strict=True)
+        def test_xpass_strict():
+            pass
+
         @pytest.fixture()
         def fail_teardown(request):
             def fin():
@@ -59,6 +67,8 @@ def test_failures(testdir):
     result.stdout.fnmatch_lines(["*::test_fail FAILED*"])
     result.stdout.fnmatch_lines(["*::test_failed_fixture ERROR*"])
     result.stdout.fnmatch_lines(["*::test_xfail XFAIL*"])
+    result.stdout.fnmatch_lines(["*::test_xpass XPASS*"])
+    result.stdout.fnmatch_lines(["*::test_xpass_strict FAILED*"])
 
     result.stdout.fnmatch_lines(["*::test_skip SKIPPED*"])
     result.stdout.fnmatch_lines(["*::test_skip_during_test SKIPPED*"])

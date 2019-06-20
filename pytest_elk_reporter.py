@@ -5,9 +5,13 @@ import os
 import getpass
 import socket
 import datetime
+import logging
 
+import six
 import pytest
 import requests
+
+LOGGER = logging.getLogger("elk-reporter")
 
 
 def pytest_addoption(parser):
@@ -71,7 +75,7 @@ class ElkReporter(object):
         self.es_username = es_username
         self.es_password = es_password
         self.stats = dict.fromkeys(
-            ["error", "passed", "failure", "skipped", "xfailed"], 0
+            ["error", "passed", "failure", "skipped", "xfailed", "xpass"], 0
         )
         self.session_data = dict(username=get_username(), hostname=socket.gethostname())
         self.suite_start_time = ""
@@ -85,7 +89,10 @@ class ElkReporter(object):
     def pytest_runtest_logreport(self, report):
         if report.passed:
             if report.when == "call":
-                self.report_test(report, "passed")
+                if hasattr(report, "wasxfail"):
+                    self.report_test(report, "xpass")
+                else:
+                    self.report_test(report, "passed")
         elif report.failed:
             if report.when == "teardown":
                 pass
@@ -94,7 +101,7 @@ class ElkReporter(object):
             else:
                 self.report_test(report, "error")
         elif report.skipped:
-            if getattr(report, "wasxfail", None) is not None:
+            if hasattr(report, "wasxfail"):
                 self.report_test(report, "xfailed")
             else:
                 self.report_test(report, "skipped")
@@ -108,9 +115,16 @@ class ElkReporter(object):
             duration=item_report.duration,
             **self.session_data
         )
-        longreprtext = getattr(item_report, "longreprtext", None)
-        if longreprtext:
-            test_data.update(failure_message=longreprtext)
+        if hasattr(item_report, "longreprtext"):
+            message = item_report.longreprtext
+        elif hasattr(item_report.longrepr, "reprcrash"):
+            message = item_report.longrepr.reprcrash.message
+        elif isinstance(item_report.longrepr, six.string_types):
+            message = item_report.longrepr
+        else:
+            message = str(item_report.longrepr)
+        if message:
+            test_data.update(failure_message=message)
 
         self.post_to_elasticsearch(test_data)
 
@@ -118,14 +132,32 @@ class ElkReporter(object):
         self.suite_start_time = datetime.datetime.utcnow().isoformat()
 
     def pytest_sessionfinish(self):
-        print(self.stats)
+        test_data = dict(summery=True, stats=self.stats, **self.session_data)
+        self.post_to_elasticsearch(test_data)
+
+    def pytest_terminal_summary(self, terminalreporter):
+        terminalreporter.write_sep(
+            "-", "stats posted to elasticsearch: %s" % (self.stats)
+        )
+
+    def pytest_internalerror(self, excrepr):
+        test_data = dict(
+            timestamp=datetime.datetime.utcnow().isoformat(),
+            outcome="internal-error",
+            faiure_message=excrepr,
+            **self.session_data
+        )
+        self.post_to_elasticsearch(test_data)
 
     def post_to_elasticsearch(self, test_data):
         if self.es_address:
-            res = requests.post(
-                self.es_url + "/test_stats/_doc", json=test_data
-            )  # TODO: have test_stats as configuration
-            res.raise_for_status()
+            try:
+                res = requests.post(
+                    self.es_url + "/test_stats/_doc", json=test_data
+                )  # TODO: have test_stats as configuration
+                res.raise_for_status()
+            except requests.exceptions.RequestException as ex:
+                LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))
 
 
 @pytest.fixture(scope="session")

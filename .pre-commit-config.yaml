@@ -21,6 +21,7 @@ repos:
         additional_dependencies:
           - pytest
           - requests
+          - requests-mock
 
 -   repo: https://github.com/pre-commit/mirrors-pylint
     rev: v1.9.1
@@ -31,6 +32,7 @@ repos:
         additional_dependencies:
           - pytest
           - requests
+          - requests-mock
 
 -   repo: https://github.com/python/black
     rev: stable

@@ -2,6 +2,7 @@
 
 import os
 import re
+import json
 
 import pytest
 
@@ -147,3 +148,41 @@ def test_setup_es_from_code(testdir):
     result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
+
+
+def test_git_info(testdir, requests_mock):
+
+    # create a fake git repo
+    testdir.run("git", "init")
+    testdir.run("git", "checkout", "-b", "master")
+    testdir.run(
+        "git", "remote", "add", "origin", "http://github.com/something/something.git"
+    )
+    testdir.run("touch", "README.md")
+    testdir.run("git", "add", "README.md")
+    testdir.run("git", "config", "user.name", '"Your Name"')
+    testdir.run("git", "config", "user.email", '"something@gmail.com"')
+    testdir.run("git", "commit", "-a", "-m", "'initial commit'")
+
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        def test_should_pass():
+            pass
+        """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    last_report = json.loads(requests_mock.request_history[-1].text)
+    assert last_report["git_branch"] == "master"
+    assert "initial commit" in last_report["git_commit_oneline"]
+    assert "initial commit" in last_report["git_commit_full"]
+    assert "git_commit_sha" in last_report
+    assert "git_commit_sha_short" in last_report
+    assert last_report["git_repo"] == "http://github.com/something/something.git"

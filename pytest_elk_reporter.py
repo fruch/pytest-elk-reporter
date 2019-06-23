@@ -6,6 +6,7 @@ import getpass
 import socket
 import datetime
 import logging
+import subprocess
 
 import six
 import pytest
@@ -177,3 +178,26 @@ def jenkins_data(request):
 
     elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
     elk.session_data.update(**jenkins_env)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def git_data(request):
+    """
+    Append git information into results session
+    """
+    git_info = dict()
+    cmds = (
+        ("git_commit_oneline", "git log --oneline  -1 --no-decorate"),
+        ("git_commit_full", "git log -1 --no-decorate"),
+        ("git_commit_sha", "git rev-parse HEAD"),
+        ("git_commit_sha_short", "git rev-parse --short HEAD"),
+        ("git_branch", "git rev-parse --abbrev-ref HEAD"),
+        ("git_repo", "git config --get remote.origin.url"),
+    )
+    for key, command in cmds:
+        try:
+            git_info[key] = subprocess.check_output(command, shell=True).strip()
+        except subprocess.CalledProcessError:
+            pass
+    elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
+    elk.session_data.update(**git_info)

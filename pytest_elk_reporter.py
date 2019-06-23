@@ -29,7 +29,7 @@ def pytest_addoption(parser):
         "--es-username",
         action="store",
         dest="es_username",
-        default=None,
+        default="",
         help="Elasticsearch username",
     )
 
@@ -37,7 +37,7 @@ def pytest_addoption(parser):
         "--es-password",
         action="store",
         dest="es_password",
-        default=None,
+        default="",
         help="Elasticsearch password",
     )
 
@@ -76,46 +76,45 @@ class ElkReporter(object):
         self.es_username = es_username
         self.es_password = es_password
         self.stats = dict.fromkeys(
-            ["error", "passed", "failure", "skipped", "xfailed", "xpass"], 0
+            [
+                "error",
+                "passed",
+                "failure",
+                "skipped",
+                "xfailed",
+                "xpass",
+                "passed & error",
+                "failure & error",
+                "skipped & error",
+            ],
+            0,
         )
         self.session_data = dict(username=get_username(), hostname=socket.gethostname())
         self.suite_start_time = ""
+        self.reports = {}
+
+    @property
+    def es_auth(self):
+        return (self.es_username, self.es_password)
 
     @property
     def es_url(self):
-        if self.es_username and self.es_password:
-            return "http://{0.es_username}:{0.es_password}@{0.es_address}".format(self)
         return "http://{0.es_address}".format(self)
 
-    def pytest_runtest_logreport(self, report):
-        if report.passed:
-            if report.when == "call":
-                if hasattr(report, "wasxfail"):
-                    self.report_test(report, "xpass")
-                else:
-                    self.report_test(report, "passed")
-        elif report.failed:
-            if report.when == "teardown":
-                pass
-            if report.when == "call":
-                self.report_test(report, "failure")
-            else:
-                self.report_test(report, "error")
-        elif report.skipped:
-            if hasattr(report, "wasxfail"):
-                self.report_test(report, "xfailed")
-            else:
-                self.report_test(report, "skipped")
+    def cache_report(self, report_item, outcome):
+        nodeid = getattr(report_item, "nodeid", report_item)
+        # local hack to handle xdist report order
+        slavenode = getattr(report_item, "node", None)
+        self.reports[nodeid, slavenode] = (report_item, outcome)
 
-    def report_test(self, item_report, outcome):
-        self.stats[outcome] += 1
-        test_data = dict(
-            timestamp=datetime.datetime.utcnow().isoformat(),
-            name=item_report.nodeid,
-            outcome=outcome,
-            duration=item_report.duration,
-            **self.session_data
-        )
+    def get_report(self, report_item):
+        nodeid = getattr(report_item, "nodeid", report_item)
+        # local hack to handle xdist report order
+        slavenode = getattr(report_item, "node", None)
+        return self.reports.get((nodeid, slavenode), None)
+
+    @staticmethod
+    def get_failure_messge(item_report):
         if hasattr(item_report, "longreprtext"):
             message = item_report.longreprtext
         elif hasattr(item_report.longrepr, "reprcrash"):
@@ -124,9 +123,53 @@ class ElkReporter(object):
             message = item_report.longrepr
         else:
             message = str(item_report.longrepr)
+        return message
+
+    def pytest_runtest_logreport(self, report):
+        # pylint: disable=too-many-branches
+
+        if report.passed:
+            if report.when == "call":
+                if hasattr(report, "wasxfail"):
+                    self.cache_report(report, "xpass")
+                else:
+                    self.cache_report(report, "passed")
+        elif report.failed:
+            if report.when == "call":
+                self.cache_report(report, "failure")
+            elif report.when == "setup":
+                self.cache_report(report, "error")
+        elif report.skipped:
+            if hasattr(report, "wasxfail"):
+                self.cache_report(report, "xfailed")
+            else:
+                self.cache_report(report, "skipped")
+
+        if report.when == "teardown":
+            old_report = self.get_report(report)
+            if report.passed:
+                self.report_test(old_report[0], old_report[1])
+            if report.failed:
+                self.report_test(
+                    report, old_report[1] + " & error", old_report=old_report[0]
+                )
+            if report.skipped:
+                self.report_test(report, "skipped")
+
+    def report_test(self, item_report, outcome, old_report=None):
+        self.stats[outcome] += 1
+        test_data = dict(
+            timestamp=datetime.datetime.utcnow().isoformat(),
+            name=item_report.nodeid,
+            outcome=outcome,
+            duration=item_report.duration,
+            **self.session_data
+        )
+        message = self.get_failure_messge(item_report)
+        if old_report:
+            message += self.get_failure_messge(old_report)
         if message:
             test_data.update(failure_message=message)
-
         self.post_to_elasticsearch(test_data)
 
     def pytest_sessionstart(self):
@@ -154,10 +197,10 @@ class ElkReporter(object):
         if self.es_address:
             try:
                 res = requests.post(
-                    self.es_url + "/test_stats/_doc", json=test_data
+                    self.es_url + "/test_stats/_doc", json=test_data, auth=self.es_auth
                 )  # TODO: have test_stats as configuration
                 res.raise_for_status()
-            except requests.exceptions.RequestException as ex:
+            except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))
 
 

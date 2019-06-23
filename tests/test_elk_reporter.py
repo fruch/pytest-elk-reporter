@@ -41,7 +41,7 @@ def configure_es_mock(requests_mock):  # pylint: disable=redefined-outer-name
     requests_mock.post(matcher, real_http=True)
 
 
-def test_failures(testdir):
+def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     """Make sure that pytest accepts our fixture."""
 
     # create a temporary pytest test module
@@ -86,6 +86,22 @@ def test_failures(testdir):
 
         def test_failure_in_fin(fail_teardown):
             pass
+
+        def test_failure_in_fin_2(fail_teardown):
+            raise Exception("failed inside test")
+
+        def test_failure_in_fin_3(fail_teardown):
+            pytest.skip("skip form test")
+
+        @pytest.fixture()
+        def skip_in_teardown(request):
+            def fin():
+                pytest.skip("skip form test")
+            request.addfinalizer(fin)
+
+        def test_skip_in_teardown(skip_in_teardown):
+            pass
+
     """
     )
 
@@ -102,8 +118,25 @@ def test_failures(testdir):
     result.stdout.fnmatch_lines(["*::test_skip SKIPPED*"])
     result.stdout.fnmatch_lines(["*::test_skip_during_test SKIPPED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    result.stdout.fnmatch_lines(["*::test_failure_in_fin ERROR*"])
+    result.stdout.fnmatch_lines(["*::test_failure_in_fin_2 FAILED*"])
+    result.stdout.fnmatch_lines(["*::test_failure_in_fin_3 ERROR*"])
+
+    # make sure that that we get a '1' exit code for the testsuite
     assert result.ret == 1
+
+    last_report = json.loads(requests_mock.request_history[-1].text)
+    assert last_report["stats"] == {
+        u"error": 1,
+        u"failure": 2,
+        u"failure & error": 1,
+        u"passed": 0,
+        u"skipped & error": 1,
+        u"passed & error": 1,
+        u"skipped": 3,
+        u"xfailed": 1,
+        u"xpass": 1,
+    }
 
 
 def test_es_configuration(testdir):
@@ -120,7 +153,35 @@ def test_es_configuration(testdir):
     )
 
     # run pytest with the following cmd args
-    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s")
+    result = testdir.runpytest(
+        "--es-address=127.0.0.1:9200",
+        "--es-username=fruch",
+        "--es-password=none",
+        "-v",
+        "-s",
+    )
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_sth PASSED*"])
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+
+def test_bad_es_configuration(testdir):
+    """Make sure that pytest accepts our elasticsearch configuration."""
+
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        from pytest_elk_reporter import ElkReporter
+        def test_sth(elk_reporter):
+            assert isinstance(elk_reporter, ElkReporter)
+
+    """
+    )
+
+    # run pytest with the following cmd args
+    result = testdir.runpytest("--es-address=12452456:9200", "-v", "-s")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_sth PASSED*"])
@@ -162,8 +223,8 @@ def test_setup_es_from_code(testdir):
         @pytest.fixture(scope='session', autouse=True)
         def configure_es(elk_reporter):
             elk_reporter.es_address = "127.0.0.1:9200"
-            elk_reporter.es_user = None
-            elk_reporter.es_password = None
+            elk_reporter.es_user = 'test'
+            elk_reporter.es_password = 'mypassword'
 
         def test_should_pass():
             pass

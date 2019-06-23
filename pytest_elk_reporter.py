@@ -196,7 +196,9 @@ def git_data(request):
     )
     for key, command in cmds:
         try:
-            git_info[key] = subprocess.check_output(command, shell=True).strip()
+            git_info[key] = (
+                subprocess.check_output(command, shell=True).decode("utf-8").strip()
+            )
         except subprocess.CalledProcessError:
             pass
     elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")

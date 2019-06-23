@@ -45,12 +45,12 @@ deploy:
       tags: true
     password:
       secure: M+ZqAsZQ1Rj1J/eTbINyj8Vy1utIs0hKdjUuMks1zj01M3ykecTyfIxR7LLtUrIDubXlYf2N3eCRE5i/52vVstIBDeoJg5LMSMOCl1GkgR1ma1b+oe9KoMrj1DxnLARxWfLVMawtjIfVLl+VR2zwwpjiaWlr90fKOIILjpdggdzsgBkBlLArC5vVaBy5TwTac9yaoiPQFzZe7ER6RcGh3/TlOWYZethRne5o98HhKBH4MWBEx5xcZcHDKYFXdUIsmOdrxfkFq5URmNP8B9kt3r6KMegIsvihDj5cTmh/NzelqSDRMjNcu76h60rB5FVKVbCugRxcBx/EwteR5RT3rVueS6CLbzn6s8wuNARr7qCc2ic08nW11u8Fd+T4bNiEs2hpstNKrFPNxBrVKzaIDDjBDOK8cZzVOcMIWo7rx3+75wG9WO1DuPnRMu6LO6DTO57r7RSyMUBXKHfor34nFIr/t+Kw6Y8QZiTf56Yb+a7hZzFinOPq9SIUP2Mli5JlmOcoYpXGeWQZUnJZKzrWVP26xoSVEWbCzSBcPx/YjiXGF+mbH1LoEWS76Qz06Y/0dxcKJUzRH6qLOfYteWUo6AHwsT5r7nHvmOv5sGG+rgksk8dxOQVMmwuICzY5dgPtRZoibCTfZy+JhoN3IgKtUzhKn1+9WTxTwSkk34lWfMo=
-  - provider: pages
-    skip-cleanup: true
-    keep-history: true
-    skip_existing: true
-    on:
-      branch: master
-    github-token: $GITHUB_TOKEN
-    local-dir: docs/_build/html
-    committer-from-gh: true
+  #- provider: pages
+  #  skip-cleanup: true
+  #  keep-history: true
+  #  skip_existing: true
+  #  on:
+  #    branch: master
+  #  github-token: $GITHUB_TOKEN
+  #  local-dir: docs/_build/html
+  #  committer-from-gh: true

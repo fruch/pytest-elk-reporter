@@ -34,6 +34,7 @@ cache:
 
 after_success:
   - cd docs && make html
+  - cd $TRAVIS_BUILD_DIR
 
 deploy:
   - provider: pypi

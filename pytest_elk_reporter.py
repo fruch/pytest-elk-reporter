@@ -7,6 +7,7 @@ import socket
 import datetime
 import logging
 import subprocess
+from collections import defaultdict
 
 import six
 import pytest
@@ -70,7 +71,7 @@ def get_username():
         return "AppVeyorIt'sWeirdNotToHaveUserName"
 
 
-class ElkReporter(object):
+class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def __init__(self, es_address, es_username, es_password):
         self.es_address = es_address
         self.es_username = es_username
@@ -90,6 +91,7 @@ class ElkReporter(object):
             0,
         )
         self.session_data = dict(username=get_username(), hostname=socket.gethostname())
+        self.test_data = defaultdict(dict)
         self.suite_start_time = ""
         self.reports = {}
 
@@ -100,6 +102,9 @@ class ElkReporter(object):
     @property
     def es_url(self):
         return "http://{0.es_address}".format(self)
+
+    def append_test_data(self, request, test_data):
+        self.test_data[request.node.nodeid].update(**test_data)
 
     def cache_report(self, report_item, outcome):
         nodeid = getattr(report_item, "nodeid", report_item)
@@ -165,11 +170,15 @@ class ElkReporter(object):
             duration=item_report.duration,
             **self.session_data
         )
+        test_data.update(self.test_data[item_report.nodeid])
+        del self.test_data[item_report.nodeid]
+
         message = self.get_failure_messge(item_report)
         if old_report:
             message += self.get_failure_messge(old_report)
         if message:
             test_data.update(failure_message=message)
+
         self.post_to_elasticsearch(test_data)
 
     def pytest_sessionstart(self):

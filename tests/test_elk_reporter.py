@@ -315,3 +315,32 @@ def test_git_info(testdir, requests_mock):  # pylint: disable=redefined-outer-na
     assert "git_commit_sha" in last_report
     assert "git_commit_sha_short" in last_report
     assert last_report["git_repo"] == "http://github.com/something/something.git"
+
+
+def test_append_test_data(
+    testdir, requests_mock
+):  # pylint: disable=redefined-outer-name
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        def test_1(request, elk_reporter):
+            elk_reporter.append_test_data(request, {"my_key": 1})
+        def test_2():
+            pass
+        """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
+    result.stdout.fnmatch_lines(["*::test_2 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    first_report = json.loads(requests_mock.request_history[0].text)
+    assert first_report["my_key"] == 1
+
+    second_report = json.loads(requests_mock.request_history[1].text)
+    assert "my_key" not in second_report, "key should be only on specific test"

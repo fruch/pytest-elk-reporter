@@ -8,16 +8,15 @@
 [![Using Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![Codecov Reports](https://codecov.io/gh/fruch/pytest-elk-reporter/branch/master/graph/badge.svg)](https://codecov.io/gh/fruch/pytest-elk-reporter)
 
-
 A plugin to send pytest test results to [ELK] stack, with extra context data
 
 ## Features
 
 * Reporting into Elasticsearch each test result, as the test finish
 * Automaticlly append context data to each test:
-    * git inforamtion such as `branch` or `last commit` and more
-    * all of Jenkins env variables
-    * username if availavle
+  * git inforamtion such as `branch` or `last commit` and more
+  * all of Jenkins env variables
+  * username if availavle
 * Report a test summery to Elastic for each session with all the context data
 * can append any user data into the context sent to elastic
 
@@ -45,16 +44,17 @@ pytest --es-address my-elk-server.io:9200 --es-username fruch --es-password 'pas
 ```
 
 ### Configure from code
-```python
-    import pytest
 
-    @pytest.fixture(scope='session', autouse=True)
-    def configure_es(elk_reporter):
-        # TODO: get cerdentials in more secure fashion programtically, maybe AWS secrects or the likes
-        # or put them in plain-text in the code... what can ever go wrong...
-        elk_reporter.es_address = "my-elk-server.io:9200"
-        elk_reporter.es_user = 'fruch'
-        elk_reporter.es_password = 'passwordsarenicetohave'
+```python
+import pytest
+
+@pytest.fixture(scope='session', autouse=True)
+def configure_es(elk_reporter):
+    # TODO: get cerdentials in more secure fashion programtically, maybe AWS secrects or the likes
+    # or put them in plain-text in the code... what can ever go wrong...
+    elk_reporter.es_address = "my-elk-server.io:9200"
+    elk_reporter.es_user = 'fruch'
+    elk_reporter.es_password = 'passwordsarenicetohave'
 
 ```
 
@@ -76,8 +76,15 @@ def report_formal_version_to_elk(request):
 ```
 
 ### Collect data for specific tests
+
 ```python
-# TODO: not implemented yet
+def test_my_service_and_collect_timings(request, elk_reporter):
+    response = requests.get("http://my-server.io/api/do_something")
+    assert response.status_code == 200
+
+    elk_reporter.append_test_data(request, {"do_something_response_time": response.elapsed.total_seconds() })
+    # now doing response time per version dashboard quite easy
+    # and yeah, it's not exactly real usable metric, it's just an example...
 ```
 
 ## Contributing
@@ -89,13 +96,12 @@ the coverage at least stays the same before you submit a pull request.
 
 Distributed under the terms of the [MIT][MIT] license, "pytest-elk-reporter" is free and open source software
 
-
 ## Issues
 
 If you encounter any problems, please [file an issue] along with a detailed description.
 
-
 ## Thanks
+
 This [pytest] plugin was generated with [Cookiecutter] along with [@hackebrot]'s [cookiecutter-pytest-plugin] template.
 
 [ELK]: https://www.elastic.co/elk-stack

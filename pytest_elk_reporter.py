@@ -214,13 +214,42 @@ def jenkins_data(request):
     """
     Append jenkins job and user data into results session
     """
-    # TODO: maybe filter some, like password and such ?
+    # TODO: maybe filter some, like password/token and such ?
     jenkins_env = {
         k.lower(): v for k, v in os.environ.items() if k.startswith("JENKINS_")
     }
 
     elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
     elk.session_data.update(**jenkins_env)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def circle_data(request):
+    """
+    Append circle ci job and user data into results session
+    """
+    if os.environ.get("CIRCLECI", False) == "true":
+        # TODO: maybe filter some, like password/token and such ?
+        circle_env = {
+            k.lower(): v for k, v in os.environ.items() if k.startswith("CIRCLE_")
+        }
+
+        elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
+        elk.session_data.update(**circle_env)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def travis_data(request):
+    """
+    Append travis ci job and user data into results session
+    """
+    if os.environ.get("TRAVIS", False) == "true":
+        travis_env = {
+            k.lower(): v for k, v in os.environ.items() if k.startswith("TRAVIS_")
+        }
+
+        elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
+        elk.session_data.update(**travis_env)
 
 
 @pytest.fixture(scope="session", autouse=True)

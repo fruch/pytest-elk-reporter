@@ -21,7 +21,7 @@ setup(
     license="MIT",
     url="https://github.com/fruch/pytest-elk-reporter",
     description="A simple plugin to use with pytest",
-    long_description=read("README.rst"),
+    long_description=read("README.md"),
     py_modules=["pytest_elk_reporter"],
     python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*",
     use_scm_version=True,

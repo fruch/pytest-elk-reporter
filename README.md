@@ -16,7 +16,7 @@ A plugin to send pytest test results to [ELK] stack, with extra context data
 * Automaticlly append context data to each test:
   * git inforamtion such as `branch` or `last commit` and more
   * all of Jenkins env variables
-  * username if availavle
+  * username if available
 * Report a test summery to Elastic for each session with all the context data
 * can append any user data into the context sent to elastic
 
@@ -31,6 +31,23 @@ You can install "pytest-elk-reporter" via [pip] from [PyPI]
 ``` bash
 pip install pytest-elk-reporter
 ```
+
+### ElasticSearch configureation
+
+We need this auto_create_index enable for the indexes that are going to be used,
+since we don't have code to create the indexes, this is the default
+
+```bash
+curl -X PUT "localhost:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+{
+    "persistent": {
+        "action.auto_create_index": "true"
+    }
+}
+'
+```
+
+For more info on this elasticsearch feature check thier [index documention](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-creation)
 
 ## Usage
 

@@ -113,6 +113,8 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
 
     @property
     def es_url(self):
+        if self.es_address.startswith("http"):
+            return "{0.es_address}".format(self)
         return "http://{0.es_address}".format(self)
 
     def append_test_data(self, request, test_data):

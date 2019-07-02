@@ -105,6 +105,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.test_data = defaultdict(dict)
         self.suite_start_time = ""
         self.reports = {}
+        self.config = config
 
     @property
     def es_auth(self):
@@ -196,13 +197,15 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.suite_start_time = datetime.datetime.utcnow().isoformat()
 
     def pytest_sessionfinish(self):
-        test_data = dict(summery=True, stats=self.stats, **self.session_data)
-        self.post_to_elasticsearch(test_data)
+        if not self.config.getoption("collectonly"):
+            test_data = dict(summery=True, stats=self.stats, **self.session_data)
+            self.post_to_elasticsearch(test_data)
 
     def pytest_terminal_summary(self, terminalreporter):
-        terminalreporter.write_sep(
-            "-", "stats posted to elasticsearch: %s" % (self.stats)
-        )
+        if not self.config.getoption("collectonly"):
+            terminalreporter.write_sep(
+                "-", "stats posted to elasticsearch: %s" % (self.stats)
+            )
 
     def pytest_internalerror(self, excrepr):
         test_data = dict(

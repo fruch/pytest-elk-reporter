@@ -265,6 +265,7 @@ def test_setup_es_from_code(testdir):
             elk_reporter.es_address = "127.0.0.1:9200"
             elk_reporter.es_user = 'test'
             elk_reporter.es_password = 'mypassword'
+            elk_reporter.es_index_name = 'test_data'
 
         def test_should_pass():
             pass
@@ -301,7 +302,7 @@ def test_git_info(testdir, requests_mock):  # pylint: disable=redefined-outer-na
         """
     )
 
-    result = testdir.runpytest("-v", "-s")
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
@@ -330,7 +331,7 @@ def test_append_test_data(
         """
     )
 
-    result = testdir.runpytest("-v", "-s")
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
@@ -344,3 +345,28 @@ def test_append_test_data(
 
     second_report = json.loads(requests_mock.request_history[1].text)
     assert "my_key" not in second_report, "key should be only on specific test"
+
+
+def test_setup_es_from_ini(testdir):
+    # create a temporary pytest test module
+    testdir.makeini(
+        """
+        [pytest]
+        es_address = my_own_es_address
+        es_index_name = my_own_index
+        """
+    )
+    testdir.makepyfile(
+        """
+        def test_should_pass(elk_reporter):
+            assert elk_reporter.es_index_name == 'my_own_index'
+            assert elk_reporter.es_address == 'my_own_es_address'
+        """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0

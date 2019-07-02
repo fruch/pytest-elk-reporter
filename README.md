@@ -24,7 +24,6 @@ A plugin to send pytest test results to [ELK] stack, with extra context data
 
 * having [pytest] tests written
 
-
 ## Installation
 
 You can install "pytest-elk-reporter" via [pip] from [PyPI]
@@ -35,7 +34,7 @@ pip install pytest-elk-reporter
 
 ## Usage
 
-### Run and configure from command line:
+### Run and configure from command line
 
 ```bash
 pytest --es-address 127.0.0.1:9200
@@ -55,14 +54,29 @@ def configure_es(elk_reporter):
     elk_reporter.es_address = "my-elk-server.io:9200"
     elk_reporter.es_user = 'fruch'
     elk_reporter.es_password = 'passwordsarenicetohave'
+    elk_reporter.es_index_name = 'test_data'
 
 ```
+
+### Configure from pytest ini file
+
+```ini
+# put this in pytest.ini / tox.ini / setup.cfg
+[pytest]
+es_address = my-elk-server.io:9200
+es_user = fruch
+es_password = passwordsarenicetohave
+es_index_name = test_data
+```
+
+see [pytest docs](https://docs.pytest.org/en/latest/customize.html)
+for more about how to configure using .ini files
 
 ### Collect context data for the whole session
 
 For example, with this I'll be able to build a dash board per version
 
-``` python
+```python
 @pytest.fixture(scope="session", autouse=True)
 def report_formal_version_to_elk(request):
     """

@@ -22,7 +22,7 @@ def pytest_addoption(parser):
         "--es-address",
         action="store",
         dest="es_address",
-        default="127.0.0.1:9200",
+        default=None,
         help="Elasticsearch addresss",
     )
 
@@ -30,7 +30,7 @@ def pytest_addoption(parser):
         "--es-username",
         action="store",
         dest="es_username",
-        default="",
+        default=None,
         help="Elasticsearch username",
     )
 
@@ -38,19 +38,25 @@ def pytest_addoption(parser):
         "--es-password",
         action="store",
         dest="es_password",
-        default="",
+        default=None,
         help="Elasticsearch password",
+    )
+    parser.addini("es_address", help="Elasticsearch addresss", default=None)
+    parser.addini("es_username", help="Elasticsearch username", default=None)
+    parser.addini("es_password", help="Elasticsearch password", default=None)
+    parser.addini(
+        "es_index_name",
+        help="name of the elasticsearch index to save results to",
+        default="test_data",
     )
 
 
 def pytest_configure(config):
     # prevent opening elk-reporter on slave nodes (xdist)
     if not hasattr(config, "slaveinput"):
-        config.elk = ElkReporter(
-            es_address=config.option.es_address,
-            es_username=config.option.es_username,
-            es_password=config.option.es_password,
-        )
+
+        config.elk = ElkReporter(config)
+        config.elk.es_index_name = config.getini("es_index_name")
         config.pluginmanager.register(config.elk, "elk-reporter-runtime")
 
 
@@ -72,10 +78,15 @@ def get_username():
 
 
 class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, es_address, es_username, es_password):
-        self.es_address = es_address
-        self.es_username = es_username
-        self.es_password = es_password
+    def __init__(self, config):
+        self.es_address = config.getoption("es_address") or config.getini("es_address")
+        self.es_username = config.getoption("es_username") or config.getini(
+            "es_username"
+        )
+        self.es_password = config.getoption("es_password") or config.getini(
+            "es_password"
+        )
+        self.es_index_name = config.getini("es_index_name")
         self.stats = dict.fromkeys(
             [
                 "error",
@@ -205,9 +216,8 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def post_to_elasticsearch(self, test_data):
         if self.es_address:
             try:
-                res = requests.post(
-                    self.es_url + "/test_stats/_doc", json=test_data, auth=self.es_auth
-                )  # TODO: have test_stats as configuration
+                url = "{0.es_url}/{0.es_index_name}/_doc".format(self)
+                res = requests.post(url, json=test_data, auth=self.es_auth)
                 res.raise_for_status()
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))

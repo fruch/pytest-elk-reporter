@@ -4,3 +4,5 @@ pre-commit
 requests-mock
 codecov
 pytest-cov
+tox
+wheel>=0.33.0

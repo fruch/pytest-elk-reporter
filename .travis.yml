@@ -49,6 +49,8 @@ deploy:
     skip_cleanup: true
     on:
       branch: master
+      condition: $TOX_ENV = py37
+
     github-token: $GITHUB_TOKEN
     local-dir: site
     committer-from-gh: true

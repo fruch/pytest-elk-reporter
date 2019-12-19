@@ -111,7 +111,6 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         )
         self.session_data = dict(username=get_username(), hostname=socket.gethostname())
         self.test_data = defaultdict(dict)
-        self.suite_start_time = ""
         self.reports = {}
         self.config = config
 
@@ -205,7 +204,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.post_to_elasticsearch(test_data)
 
     def pytest_sessionstart(self):
-        self.suite_start_time = datetime.datetime.utcnow().isoformat()
+        self.session_data["session_start_time"] = datetime.datetime.utcnow().isoformat()
 
     def pytest_sessionfinish(self):
         if not self.config.getoption("collectonly"):

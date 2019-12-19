@@ -370,3 +370,37 @@ def test_setup_es_from_ini(testdir):
     result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
+
+
+def test_marker_collection(
+    testdir, requests_mock
+):  # pylint: disable=redefined-outer-name
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        @pytest.mark.mark1
+        def test_1(request):
+            pass
+
+        @pytest.mark.mark2
+        def test_2():
+            pass
+        """
+    )
+
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
+    result.stdout.fnmatch_lines(["*::test_2 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    first_report = json.loads(requests_mock.request_history[0].text)
+    assert "mark1" in first_report["markers"]
+
+    second_report = json.loads(requests_mock.request_history[1].text)
+    assert "mark2" in second_report["markers"]

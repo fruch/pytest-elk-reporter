@@ -12,8 +12,16 @@ from collections import defaultdict
 import six
 import pytest
 import requests
+from _pytest.runner import pytest_runtest_makereport as _makereport
+
 
 LOGGER = logging.getLogger("elk-reporter")
+
+
+def pytest_runtest_makereport(item, call):
+    report = _makereport(item, call)
+    report.keywords = dict(item.keywords)
+    return report
 
 
 def pytest_addoption(parser):
@@ -182,6 +190,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             name=item_report.nodeid,
             outcome=outcome,
             duration=item_report.duration,
+            markers=list([m.name for m in item_report.keywords.get("pytestmark", [])]),
             **self.session_data
         )
         test_data.update(self.test_data[item_report.nodeid])

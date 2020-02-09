@@ -80,7 +80,7 @@ def get_username():
         return getpass.getuser()
     except ImportError:
         # seem like our friends in AppVeyor took security into a new level,
-        # and no username env vars casues getpass to go crazy
+        # and no username env vars causes getpass to go crazy
         # https://github.com/python-cmd2/cmd2/pull/372/files#diff-ed451f9960c50a6a096b11155fdbfc1dR325
         return "AppVeyorIt'sWeirdNotToHaveUserName"
 
@@ -116,7 +116,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
 
     @property
     def es_auth(self):
-        return (self.es_username, self.es_password)
+        return self.es_username, self.es_password
 
     @property
     def es_url(self):
@@ -214,7 +214,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def pytest_terminal_summary(self, terminalreporter):
         if not self.config.getoption("collectonly"):
             terminalreporter.write_sep(
-                "-", "stats posted to elasticsearch: %s" % (self.stats)
+                "-", "stats posted to elasticsearch [%s]: %s" % (self.es_address, self.stats)
             )
 
     def pytest_internalerror(self, excrepr):

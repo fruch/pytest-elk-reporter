@@ -59,7 +59,7 @@ pytest --es-address 127.0.0.1:9200
 pytest --es-address my-elk-server.io:9200 --es-username fruch --es-password 'passwordsarenicetohave'
 ```
 
-### Configure from code
+### Configure from code (Idealy in conftest.py)
 
 ```python
 import pytest

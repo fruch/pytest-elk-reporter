@@ -214,7 +214,9 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def pytest_terminal_summary(self, terminalreporter):
         if not self.config.getoption("collectonly"):
             terminalreporter.write_sep(
-                "-", "stats posted to elasticsearch [%s]: %s" % (self.es_address, self.stats)
+                "-",
+                "stats posted to elasticsearch [%s]: %s"
+                % (self.es_address, self.stats),
             )
 
     def pytest_internalerror(self, excrepr):

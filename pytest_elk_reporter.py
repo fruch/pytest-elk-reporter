@@ -49,6 +49,15 @@ def pytest_addoption(parser):
         default=None,
         help="Elasticsearch password",
     )
+
+    group.addoption(
+        "--es-timeout",
+        action="store",
+        dest="es_timeout",
+        default=10,
+        help="Elasticsearch connection timeout",
+    )
+
     parser.addini("es_address", help="Elasticsearch addresss", default=None)
     parser.addini("es_username", help="Elasticsearch username", default=None)
     parser.addini("es_password", help="Elasticsearch password", default=None)
@@ -95,6 +104,8 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             "es_password"
         )
         self.es_index_name = config.getini("es_index_name")
+        self.es_timeout = config.getoption("es_timeout")
+
         self.stats = dict.fromkeys(
             [
                 "error",
@@ -232,7 +243,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         if self.es_address:
             try:
                 url = "{0.es_url}/{0.es_index_name}/_doc".format(self)
-                res = requests.post(url, json=test_data, auth=self.es_auth)
+                res = requests.post(url, json=test_data, auth=self.es_auth, timeout=self.es_timeout)
                 res.raise_for_status()
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))

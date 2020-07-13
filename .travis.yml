@@ -20,7 +20,7 @@ matrix:
 
 install:
 - pip install tox
-- pip install mkdocs mkdocs-material pymdown-extensions pygments
+- if [[ $TOX_ENV != py27 ]]; then pip install mkdocs mkdocs-material pymdown-extensions pygments; fi
 
 script:
 - tox -e $TOX_ENV
@@ -33,7 +33,7 @@ cache:
   - "$HOME/.cache/pip"
 
 before_deploy:
-    - mkdocs build --verbose --clean --strict # Build a local version of the docs
+    - if [[ $TOX_ENV != py27 ]]; then mkdocs build --verbose --clean --strict ; fi
 
 deploy:
   - provider: pypi

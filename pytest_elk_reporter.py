@@ -243,7 +243,9 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         if self.es_address:
             try:
                 url = "{0.es_url}/{0.es_index_name}/_doc".format(self)
-                res = requests.post(url, json=test_data, auth=self.es_auth, timeout=self.es_timeout)
+                res = requests.post(
+                    url, json=test_data, auth=self.es_auth, timeout=self.es_timeout
+                )
                 res.raise_for_status()
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))

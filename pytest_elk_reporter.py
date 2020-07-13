@@ -223,7 +223,9 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             self.post_to_elasticsearch(test_data)
 
     def pytest_terminal_summary(self, terminalreporter):
-        if not self.config.getoption("collectonly"):
+        verbose = terminalreporter.config.getvalue("verbose")
+
+        if not self.config.getoption("collectonly") and verbose < 2:
             terminalreporter.write_sep(
                 "-",
                 "stats posted to elasticsearch [%s]: %s"

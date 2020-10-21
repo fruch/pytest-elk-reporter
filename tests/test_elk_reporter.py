@@ -428,6 +428,7 @@ def test_marker_collection(
     assert "mark2" in second_report["markers"]
 
 
+<<<<<<< HEAD
 def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     # create a temporary pytest test module
     testdir.makepyfile(
@@ -458,7 +459,10 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
             assert "mark2" in report["markers"]
 
 
-def test_user_properties(testdir, requests_mock):
+def test_user_properties(
+    testdir, requests_mock
+):
+    # create a temporary pytest test module
     testdir.makepyfile(
         """
         import pytest

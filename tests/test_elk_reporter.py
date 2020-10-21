@@ -433,7 +433,6 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     testdir.makepyfile(
         """
         import pytest
-
         @pytest.mark.mark1
         def test_1(request):
             pass
@@ -450,9 +449,6 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     result.stdout.fnmatch_lines(["*PASSED*test_xdist.py::test_1 "])
     result.stdout.fnmatch_lines(["*PASSED*test_xdist.py::test_2 "])
 
-    # make sure that that we get a '0' exit code for the testsuite
-    assert result.ret == 0
-
     for data in requests_mock.request_history[:2]:
         report = json.loads(data.text)
 
@@ -460,3 +456,27 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
             assert "mark1" in report["markers"]
         if report["name"] == "test_xdist.py::test_2":
             assert "mark2" in report["markers"]
+
+
+def test_user_properties(testdir, requests_mock):
+    testdir.makepyfile(
+        """
+        import pytest
+
+|        def test_1(record_property):
+            record_property("example_key", 1)
+            pass
+        """
+    )
+
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    report = json.loads(requests_mock.request_history[0].text)
+    assert "example_key" in report
+    assert report["example_key"] == 1

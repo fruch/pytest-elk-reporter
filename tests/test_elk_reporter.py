@@ -461,7 +461,7 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
 
 def test_user_properties(
     testdir, requests_mock
-):
+):  # pylint: disable=redefined-outer-name
     # create a temporary pytest test module
     testdir.makepyfile(
         """

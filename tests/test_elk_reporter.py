@@ -136,6 +136,7 @@ def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-na
         u"skipped": 3,
         u"xfailed": 1,
         u"xpass": 1,
+        u"error & error": 0,
     }
 
 

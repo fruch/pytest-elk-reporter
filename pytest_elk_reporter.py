@@ -117,6 +117,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
                 "passed & error",
                 "failure & error",
                 "skipped & error",
+                "error & error",
             ],
             0,
         )

@@ -303,6 +303,20 @@ def travis_data(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
+def github_data(request):
+    """
+    Append github ci job and user data into results session
+    """
+    if os.environ.get("GITHUB_ACTIONS", False) == "true":
+        github_env = {
+            k.lower(): v for k, v in os.environ.items() if k.startswith("GITHUB_")
+        }
+
+        elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
+        elk.session_data.update(**github_env)
+
+
+@pytest.fixture(scope="session", autouse=True)
 def git_data(request):
     """
     Append git information into results session

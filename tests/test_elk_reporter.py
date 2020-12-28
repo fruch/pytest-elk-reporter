@@ -255,6 +255,26 @@ def test_circle_env_collection(testdir):
     assert result.ret == 0
 
 
+def test_github_env_collection(testdir):
+    os.environ["GITHUB_ACTIONS"] = "true"
+    os.environ["GITHUB_ACTOR"] = "Israel Fruchter"
+
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        def test_collection_elk(elk_reporter):
+            assert elk_reporter.session_data['github_actor'] == 'Israel Fruchter'
+        """
+    )
+
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_collection_elk PASSED*"])
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+
 def test_setup_es_from_code(testdir):
     # create a temporary pytest test module
     testdir.makepyfile(

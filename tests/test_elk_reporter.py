@@ -447,14 +447,16 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s", "-n", "2")
 
     # fnmatch_lines does an assertion internally
-    result.stdout.fnmatch_lines(["[gw0] PASSED test_xdist.py::test_1 "])
-    result.stdout.fnmatch_lines(["[gw1] PASSED test_xdist.py::test_2 "])
+    result.stdout.fnmatch_lines(["*PASSED*test_xdist.py::test_1 "])
+    result.stdout.fnmatch_lines(["*PASSED*test_xdist.py::test_2 "])
 
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
-    first_report = json.loads(requests_mock.request_history[0].text)
-    assert "mark1" in first_report["markers"]
+    for data in requests_mock.request_history[:2]:
+        report = json.loads(data.text)
 
-    second_report = json.loads(requests_mock.request_history[1].text)
-    assert "mark2" in second_report["markers"]
+        if report["name"] == "test_xdist.py::test_1":
+            assert "mark1" in report["markers"]
+        if report["name"] == "test_xdist.py::test_2":
+            assert "mark2" in report["markers"]

@@ -88,10 +88,18 @@ def get_username():
     try:
         return getpass.getuser()
     except ImportError:
-        # seem like our friends in AppVeyor took security into a new level,
-        # and no username env vars causes getpass to go crazy
-        # https://github.com/python-cmd2/cmd2/pull/372/files#diff-ed451f9960c50a6a096b11155fdbfc1dR325
-        return "AppVeyorIt'sWeirdNotToHaveUserName"
+        try:
+            return os.getlogin()
+        except Exception:  # pylint: disable=broad-except
+            # seems like there are case we can't get the name of the user that is currently running
+            LOGGER.warning(
+                "couldn't figure out which user is currently running setting to 'unknown'"
+            )
+            LOGGER.warning(
+                "see https://docs.python.org/3/library/getpass.html#getpass.getuser, "
+                "if you want to configure it correctly"
+            )
+            return "unknown"
 
 
 class ElkReporter(object):  # pylint: disable=too-many-instance-attributes

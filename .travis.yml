@@ -18,6 +18,10 @@ matrix:
     env: TOX_ENV=pre-commit
     name: pre-commit run
 
+branches:
+  only:
+  - master
+
 install:
 - pip install tox
 - if [[ $TOX_ENV != py27 && $TOX_ENV != pypy ]]; then pip install mkdocs mkdocs-material pymdown-extensions pygments; fi

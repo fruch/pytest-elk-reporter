@@ -227,7 +227,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def pytest_terminal_summary(self, terminalreporter):
         verbose = terminalreporter.config.getvalue("verbose")
 
-        if not self.config.getoption("collectonly") and verbose < 2:
+        if not self.config.getoption("collectonly") and verbose < 2 and self.es_address:
             terminalreporter.write_sep(
                 "-",
                 "stats posted to elasticsearch [%s]: %s"
@@ -334,7 +334,9 @@ def git_data(request):
     for key, command in cmds:
         try:
             git_info[key] = (
-                subprocess.check_output(command, shell=True).decode("utf-8").strip()
+                subprocess.check_output(command, shell=True, stderr=subprocess.DEVNULL)
+                .decode("utf-8")
+                .strip()
             )
         except subprocess.CalledProcessError:
             pass

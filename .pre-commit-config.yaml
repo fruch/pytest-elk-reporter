@@ -16,19 +16,8 @@ repos:
     rev: v2.3.1
     hooks:
     -   id: pylint
-        name: pylint36
-        language_version: python3.6
-        additional_dependencies:
-          - pytest
-          - requests
-          - requests-mock
-
--   repo: https://github.com/pre-commit/mirrors-pylint
-    rev: v1.9.1
-    hooks:
-    -   id: pylint
-        name: pylint27
-        language_version: python2.7
+        name: pylint38
+        language_version: python3.8
         additional_dependencies:
           - pytest
           - requests

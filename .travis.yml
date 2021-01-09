@@ -14,7 +14,7 @@ matrix:
     env: TOX_ENV=py39
   - python: pypy3
     env: TOX_ENV=pypy3
-  - python: 3.6
+  - python: 3.8
     env: TOX_ENV=pre-commit
     name: pre-commit run
 

@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/pytest-elk-reporter.svg?style=flat)](https://pypi.org/project/pytest-elk-reporter)
 [![Python versions](https://img.shields.io/pypi/pyversions/pytest-elk-reporter.svg?style=flat)](https://pypi.org/project/pytest-elk-reporter)
-![.github/workflows/tests.yml](https://github.com/fruch/pytest-elk-reporter/workflows/.github/workflows/tests.yml/badge.svg)
+[![.github/workflows/tests.yml](https://github.com/fruch/pytest-elk-reporter/workflows/.github/workflows/tests.yml/badge.svg)](https://github.com/fruch/pytest-elk-reporter/actions?query=branch%3Amaster)
 [![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/fruch/pytest-elk-reporter.svg?style=flat)](https://libraries.io/github/fruch/pytest-elk-reporter)
 [![Using Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![Codecov Reports](https://codecov.io/gh/fruch/pytest-elk-reporter/branch/master/graph/badge.svg)](https://codecov.io/gh/fruch/pytest-elk-reporter)

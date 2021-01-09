@@ -140,6 +140,7 @@ def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-na
     }
 
 
+@pytest.mark.this_marker
 def test_es_configuration(testdir):
     """Make sure that pytest accepts our elasticsearch configuration."""
 
@@ -416,6 +417,38 @@ def test_marker_collection(
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
     result.stdout.fnmatch_lines(["*::test_2 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    first_report = json.loads(requests_mock.request_history[0].text)
+    assert "mark1" in first_report["markers"]
+
+    second_report = json.loads(requests_mock.request_history[1].text)
+    assert "mark2" in second_report["markers"]
+
+
+def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        @pytest.mark.mark1
+        def test_1(request):
+            pass
+
+        @pytest.mark.mark2
+        def test_2():
+            pass
+        """
+    )
+
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s", "-n", "2")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["[gw0] PASSED test_xdist.py::test_1 "])
+    result.stdout.fnmatch_lines(["[gw1] PASSED test_xdist.py::test_2 "])
 
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0

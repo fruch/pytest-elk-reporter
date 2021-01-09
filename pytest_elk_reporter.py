@@ -20,7 +20,7 @@ LOGGER = logging.getLogger("elk-reporter")
 
 def pytest_runtest_makereport(item, call):
     report = _makereport(item, call)
-    report.keywords = dict(item.keywords)
+    report.keywords = list([m.name for m in item.keywords.get("pytestmark", [])])
     return report
 
 
@@ -201,7 +201,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             name=item_report.nodeid,
             outcome=outcome,
             duration=item_report.duration,
-            markers=list([m.name for m in item_report.keywords.get("pytestmark", [])]),
+            markers=item_report.keywords,
             **self.session_data
         )
         test_data.update(self.test_data[item_report.nodeid])

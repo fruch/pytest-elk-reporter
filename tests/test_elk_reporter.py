@@ -428,7 +428,6 @@ def test_marker_collection(
     assert "mark2" in second_report["markers"]
 
 
-<<<<<<< HEAD
 def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     # create a temporary pytest test module
     testdir.makepyfile(
@@ -467,7 +466,7 @@ def test_user_properties(
         """
         import pytest
 
-|        def test_1(record_property):
+        def test_1(record_property):
             record_property("example_key", 1)
             pass
         """

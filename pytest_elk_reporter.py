@@ -197,6 +197,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def report_test(self, item_report, outcome, old_report=None):
         self.stats[outcome] += 1
         test_data = dict(
+            item_report.user_properties,
             timestamp=datetime.datetime.utcnow().isoformat(),
             name=item_report.nodeid,
             outcome=outcome,

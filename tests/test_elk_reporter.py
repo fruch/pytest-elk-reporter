@@ -1,44 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 import json
 
 import pytest
-import requests_mock as rm_module
-
-try:
-    from distutils import version  # pylint: disable=no-name-in-module
-
-    _PYTEST_VERSION = version.StrictVersion(pytest.__version__)
-    _PYTEST_30 = _PYTEST_VERSION >= version.StrictVersion("3.0.0")
-except Exception:  # pylint: disable=broad-except
-    _PYTEST_30 = False
-
-if _PYTEST_30:
-    _FIXTRUE_TYPE = pytest.fixture
-else:
-    _FIXTRUE_TYPE = pytest.yield_fixture
-
-
-@_FIXTRUE_TYPE(scope="function")  # executed on every test
-def requests_mock():
-    """Mock out the requests component of your code with defined responses.
-    Mocks out any requests made through the python requests library with useful
-    responses for unit testing. See:
-    https://requests-mock.readthedocs.io/en/latest/
-    """
-    kwargs = {"real_http": False}
-
-    with rm_module.Mocker(**kwargs) as mock:
-        yield mock
-
-
-@pytest.fixture(scope="function", autouse=True)
-def configure_es_mock(requests_mock):  # pylint: disable=redefined-outer-name
-    matcher = re.compile(r"http://127.0.0.1:9200/.*")
-    # requests_mock.post(matcher, text="data", status_code=201, real_http=True)
-    requests_mock.post(matcher, real_http=True)
 
 
 def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-name

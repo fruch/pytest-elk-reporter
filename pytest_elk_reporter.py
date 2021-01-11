@@ -8,6 +8,8 @@ import datetime
 import logging
 import subprocess
 from collections import defaultdict
+import pprint
+import fnmatch
 
 import six
 import pytest
@@ -31,7 +33,7 @@ def pytest_addoption(parser):
         action="store",
         dest="es_address",
         default=None,
-        help="Elasticsearch addresss",
+        help="Elasticsearch address",
     )
 
     group.addoption(
@@ -58,7 +60,32 @@ def pytest_addoption(parser):
         help="Elasticsearch connection timeout",
     )
 
-    parser.addini("es_address", help="Elasticsearch addresss", default=None)
+    group.addoption(
+        "--es-slices",
+        action="store_true",
+        dest="es_slices",
+        default=False,
+        help="Splice collected tests base on history data",
+    )
+
+    group.addoption(
+        "--es-max-splice-time",
+        action="store",
+        type=float,
+        dest="es_max_splice_time",
+        default=60,
+        help="Max duration of each splice, in minutes",
+    )
+    group.addoption(
+        "--es-default-test-time",
+        action="store",
+        type=float,
+        dest="es_default_test_time",
+        default=120,
+        help="Default time for a test, if history isn't found for it, in seconds",
+    )
+
+    parser.addini("es_address", help="Elasticsearch address", default=None)
     parser.addini("es_username", help="Elasticsearch username", default=None)
     parser.addini("es_password", help="Elasticsearch password", default=None)
     parser.addini(
@@ -113,6 +140,11 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         )
         self.es_index_name = config.getini("es_index_name")
         self.es_timeout = config.getoption("es_timeout")
+
+        self.es_max_splice_time = config.getoption("es_max_splice_time")
+        self.es_default_test_time = config.getoption("es_default_test_time")
+
+        self.slices_query_fmt = '(name:"{}") AND (outcome: passed)'
 
         self.stats = dict.fromkeys(
             [
@@ -193,9 +225,9 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
 
         if report.when == "teardown":
             old_report = self.get_report(report)
-            if report.passed:
+            if report.passed and old_report:
                 self.report_test(old_report[0], old_report[1])
-            if report.failed:
+            if report.failed and old_report:
                 self.report_test(
                     report, old_report[1] + " & error", old_report=old_report[0]
                 )
@@ -211,7 +243,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             outcome=outcome,
             duration=item_report.duration,
             markers=item_report.keywords,
-            **self.session_data
+            **self.session_data,
         )
         test_data.update(self.test_data[item_report.nodeid])
         del self.test_data[item_report.nodeid]
@@ -247,7 +279,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             timestamp=datetime.datetime.utcnow().isoformat(),
             outcome="internal-error",
             faiure_message=excrepr,
-            **self.session_data
+            **self.session_data,
         )
         self.post_to_elasticsearch(test_data)
 
@@ -261,6 +293,114 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
                 res.raise_for_status()
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))
+
+    def fetch_test_duration(self, collected_test_list, default_time_sec=120.0):
+        test_durations = []
+        for test_id in collected_test_list:
+            url = "{0.es_url}/{0.es_index_name}/_search?size=0".format(self)
+            body = {
+                "query": {
+                    "query_string": {"query": self.slices_query_fmt.format(test_id)}
+                },
+                "aggs": {
+                    "stats_duration": {"stats": {"field": "duration"}},
+                    "percentiles_duration": {
+                        "percentiles": {"field": "duration", "percents": [90, 95, 99]}
+                    },
+                },
+            }
+            try:
+                res = requests.post(
+                    url, json=body, auth=self.es_auth, timeout=self.es_timeout
+                )
+                res.raise_for_status()
+                test_durations.append(
+                    dict(
+                        test_name=test_id,
+                        duration=res.json()["aggregations"]["percentiles_duration"][
+                            "values"
+                        ]["95.0"],
+                    )
+                )
+            except (requests.exceptions.ReadTimeout, requests.exceptions.HTTPError):
+                test_durations.append(dict(test_name=test_id, duration=None))
+
+        for test in test_durations:
+            if not test["duration"]:
+                test["duration"] = default_time_sec
+        test_durations.sort(key=lambda x: x["duration"])
+        LOGGER.debug(pprint.pformat(test_durations))
+
+        return test_durations
+
+    @staticmethod
+    def clear_old_exclude_files(outputdir):
+        print("clear old exclude files")
+        # Get a list of all files in directory
+        for root_dir, _, filenames in os.walk(outputdir):
+            # Find the files that matches the given patterm
+            for filename in fnmatch.filter(filenames, "exclude_*.txt"):
+                try:
+                    os.remove(os.path.join(root_dir, filename))
+                except OSError:
+                    print(f"Error while deleting file {filename}")
+
+            for filename in fnmatch.filter(filenames, "include_*.txt"):
+                try:
+                    os.remove(os.path.join(root_dir, filename))
+                except OSError:
+                    print(f"Error while deleting file {filename}")
+
+    @staticmethod
+    def split_files_test_list(outputdir, slices):
+        for i, current_slice in enumerate(slices):
+            print(
+                f"{i}: {datetime.timedelta(0, current_slice['total'])} "
+                f"- {len(current_slice['tests'])} - {current_slice['tests']}"
+            )
+            include_filename = os.path.join(outputdir, "include_%03d.txt" % i)
+
+            with open(include_filename, "w") as slice_file:
+                for case in current_slice["tests"]:
+                    slice_file.write(case + "\n")
+
+    @staticmethod
+    def make_test_slices(test_data, max_slice_duration):
+        slices = []
+        while test_data:
+            current_test = test_data.pop(0)
+            for current_slice in slices:
+                if (
+                    current_slice["total"] + float(current_test["duration"])
+                    > max_slice_duration
+                ):
+                    continue
+                current_slice["total"] += float(current_test["duration"])
+                current_slice["tests"] += [current_test["test_name"]]
+                break
+            else:
+                slices += [dict(total=0.0, tests=[])]
+                current_slice = slices[-1]
+                current_slice["total"] += float(current_test["duration"])
+                current_slice["tests"] += [current_test["test_name"]]
+        return slices
+
+    def pytest_collection_finish(self, session):
+
+        if self.config.getoption("es_slices"):
+            assert (
+                self.es_default_test_time and self.es_max_splice_time
+            ), "'--es-max-splice-time' and '--es-default-test-time' should be positive numbers"
+            test_history_data = self.fetch_test_duration(
+                [item.nodeid.replace("::()", "") for item in session.items],
+                default_time_sec=self.es_default_test_time,
+            )
+            slices = self.make_test_slices(
+                test_history_data, max_slice_duration=self.es_max_splice_time * 60
+            )
+            LOGGER.debug(pprint.pformat(slices))
+            self.clear_old_exclude_files(outputdir=".")
+            self.split_files_test_list(outputdir=".", slices=slices)
 
 
 @pytest.fixture(scope="session")

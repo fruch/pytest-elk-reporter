@@ -10,6 +10,7 @@ import subprocess
 from collections import defaultdict
 import pprint
 import fnmatch
+import concurrent.futures
 
 import six
 import pytest
@@ -294,36 +295,59 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             except Exception as ex:  # pylint: disable=broad-except
                 LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))
 
-    def fetch_test_duration(self, collected_test_list, default_time_sec=120.0):
+    def fetch_test_duration(
+        self, collected_test_list, default_time_sec=120.0, max_workers=20
+    ):
+        """
+        fetch test 95 percentile duration of a list of tests
+
+        :param collected_test_list: the names of the test to lookup
+        :param default_time_sec: the time to return when no history data found
+        :param max_workers: number of threads to use for concurrency
+
+        :returns: map from test_id to 95 percentile duration
+        """
+
         test_durations = []
-        for test_id in collected_test_list:
+        session = requests.Session()
+
+        def get_test_stats(test_id):
             url = "{0.es_url}/{0.es_index_name}/_search?size=0".format(self)
             body = {
                 "query": {
                     "query_string": {"query": self.slices_query_fmt.format(test_id)}
                 },
                 "aggs": {
-                    "stats_duration": {"stats": {"field": "duration"}},
                     "percentiles_duration": {
                         "percentiles": {"field": "duration", "percents": [90, 95, 99]}
                     },
                 },
             }
             try:
-                res = requests.post(
+                res = session.post(
                     url, json=body, auth=self.es_auth, timeout=self.es_timeout
                 )
                 res.raise_for_status()
-                test_durations.append(
-                    dict(
-                        test_name=test_id,
-                        duration=res.json()["aggregations"]["percentiles_duration"][
-                            "values"
-                        ]["95.0"],
-                    )
+                return dict(
+                    test_name=test_id,
+                    duration=res.json()["aggregations"]["percentiles_duration"][
+                        "values"
+                    ]["95.0"],
                 )
             except (requests.exceptions.ReadTimeout, requests.exceptions.HTTPError):
-                test_durations.append(dict(test_name=test_id, duration=None))
+                return dict(test_name=test_id, duration=None)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_test_id = {
+                executor.submit(get_test_stats, test_id): test_id
+                for test_id in collected_test_list
+            }
+            for future in concurrent.futures.as_completed(future_to_test_id):
+                test_id = future_to_test_id[future]
+                try:
+                    test_durations.append(future.result())
+                except Exception:  # pylint: disable=broad-except
+                    LOGGER.exception("'%s' generated an exception", test_id)
 
         for test in test_durations:
             if not test["duration"]:

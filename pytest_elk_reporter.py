@@ -362,13 +362,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         print("clear old exclude files")
         # Get a list of all files in directory
         for root_dir, _, filenames in os.walk(outputdir):
-            # Find the files that matches the given patterm
-            for filename in fnmatch.filter(filenames, "exclude_*.txt"):
-                try:
-                    os.remove(os.path.join(root_dir, filename))
-                except OSError:
-                    print(f"Error while deleting file {filename}")
-
+            # Find the files that matches the given pattern
             for filename in fnmatch.filter(filenames, "include_*.txt"):
                 try:
                     os.remove(os.path.join(root_dir, filename))

@@ -36,18 +36,25 @@ def test_history_slices(testdir):
 
     # corresponding slice files, should exist
     with open(testdir.tmpdir / "include_000.txt") as slice_file:
-        assert set(slice_file.read().splitlines()) == set(
-            [
-                "test_history_slices.py::test_should_pass_1",
-                "test_history_slices.py::test_should_pass_2",
-                "test_history_slices.py::test_should_pass_3",
-            ]
-        )
+        test_set_one = set(slice_file.read().splitlines())
 
     with open(testdir.tmpdir / "include_001.txt") as slice_file:
-        assert set(slice_file.read().splitlines()) == set(
-            [
-                "test_history_slices.py::test_with_history_data",
-                "test_history_slices.py::test_that_failed",
-            ]
-        )
+        test_set_two = set(slice_file.read().splitlines())
+
+    assert test_set_one | test_set_two == {
+        "test_history_slices.py::test_should_pass_1",
+        "test_history_slices.py::test_should_pass_2",
+        "test_history_slices.py::test_should_pass_3",
+        "test_history_slices.py::test_with_history_data",
+        "test_history_slices.py::test_that_failed",
+    }
+
+    # run again, to make sure we clean old include*.txt files
+    result = testdir.runpytest(
+        "-v",
+        "-s",
+        "--collect-only",
+        "--es-slices",
+        "--es-max-splice-time=4",
+        "--es-address=127.0.0.1:9200",
+    )

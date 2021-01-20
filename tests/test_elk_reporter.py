@@ -393,7 +393,7 @@ def test_marker_collection(
     assert "mark2" in second_report["markers"]
 
 
-def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
+def test_xdist(testdir):  # pylint: disable=redefined-outer-name
     # create a temporary pytest test module
     testdir.makepyfile(
         """
@@ -408,19 +408,11 @@ def test_xdist(testdir, requests_mock):  # pylint: disable=redefined-outer-name
         """
     )
 
-    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v", "-s", "-n", "2")
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-s", "-v", "-n", "2")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*PASSED*test_xdist.py::test_1 "])
     result.stdout.fnmatch_lines(["*PASSED*test_xdist.py::test_2 "])
-
-    for data in requests_mock.request_history[:2]:
-        report = json.loads(data.text)
-
-        if report["name"] == "test_xdist.py::test_1":
-            assert "mark1" in report["markers"]
-        if report["name"] == "test_xdist.py::test_2":
-            assert "mark2" in report["markers"]
 
 
 def test_user_properties(

@@ -440,3 +440,32 @@ def test_user_properties(
     report = json.loads(requests_mock.request_history[0].text)
     assert "example_key" in report
     assert report["example_key"] == 1
+
+
+def test_marks(testdir, requests_mock):  # pylint: disable=redefined-outer-name
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        pytestmark = [pytest.mark.module_level]
+
+        @pytest.mark.class_level
+        class TestClass:
+
+            @pytest.mark.method_level
+            def test_1(record_property):
+                pass
+        """
+    )
+
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-s", "-v")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    report = json.loads(requests_mock.request_history[0].text)
+    assert set(report["markers"]) == {"module_level", "class_level", "method_level"}

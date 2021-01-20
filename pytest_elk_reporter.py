@@ -23,7 +23,7 @@ LOGGER = logging.getLogger("elk-reporter")
 
 def pytest_runtest_makereport(item, call):
     report = _makereport(item, call)
-    report.keywords = list([m.name for m in item.keywords.get("pytestmark", [])])
+    report.keywords = list([m.name for m in item.iter_markers()])
     return report
 
 

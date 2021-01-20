@@ -204,6 +204,16 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             message = str(item_report.longrepr)
         return message
 
+    def get_worker_id(self):
+        # based on https://github.com/pytest-dev/pytest-xdist/pull/505
+        # (to support older version of xdist)
+        worker_id = "default"
+        if hasattr(self.config, "workerinput"):
+            worker_id = self.config.workerinput["workerid"]
+        if not hasattr(self.config, "workerinput") and self.config.option.dist != "no":
+            worker_id = "master"
+        return worker_id
+
     def pytest_runtest_logreport(self, report):
         # pylint: disable=too-many-branches
 
@@ -225,15 +235,17 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
                 self.cache_report(report, "skipped")
 
         if report.when == "teardown":
-            old_report = self.get_report(report)
-            if report.passed and old_report:
-                self.report_test(old_report[0], old_report[1])
-            if report.failed and old_report:
-                self.report_test(
-                    report, old_report[1] + " & error", old_report=old_report[0]
-                )
-            if report.skipped:
-                self.report_test(report, "skipped")
+            # in xdist, report only on worker nodes
+            if self.get_worker_id() != "master":
+                old_report = self.get_report(report)
+                if report.passed and old_report:
+                    self.report_test(old_report[0], old_report[1])
+                if report.failed and old_report:
+                    self.report_test(
+                        report, old_report[1] + " & error", old_report=old_report[0]
+                    )
+                if report.skipped:
+                    self.report_test(report, "skipped")
 
     def report_test(self, item_report, outcome, old_report=None):
         self.stats[outcome] += 1
@@ -254,7 +266,6 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             message += self.get_failure_messge(old_report)
         if message:
             test_data.update(failure_message=message)
-
         self.post_to_elasticsearch(test_data)
 
     def pytest_sessionstart(self):

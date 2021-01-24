@@ -210,7 +210,10 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         worker_id = "default"
         if hasattr(self.config, "workerinput"):
             worker_id = self.config.workerinput["workerid"]
-        if not hasattr(self.config, "workerinput") and self.config.option.dist != "no":
+        if (
+            not hasattr(self.config, "workerinput")
+            and getattr(self.config.option, "dist", "no") != "no"
+        ):
             worker_id = "master"
         return worker_id
 

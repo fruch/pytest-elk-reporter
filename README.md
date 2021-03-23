@@ -11,8 +11,8 @@ A plugin to send pytest test results to [ELK] stack, with extra context data
 
 ## Features
 
-* Reporting into Elasticsearch each test result, as the test finish
-* Automatically append context data to each test:
+* Report each test result into Elasticsearch as they finish
+* Automatically append contextual data to each test:
   * git information such as `branch` or `last commit` and more
   * all of CI env variables
     * Jenkins
@@ -20,8 +20,8 @@ A plugin to send pytest test results to [ELK] stack, with extra context data
     * Circle CI
     * Github Actions
   * username if available
-* Report a test summery to Elastic for each session with all the context data
-* can append any user data into the context sent to elastic
+* Report a test summary to Elastic for each session with all the context data
+* Append any user data into the context sent to Elastic
 
 ## Requirements
 
@@ -35,9 +35,9 @@ You can install "pytest-elk-reporter" via [pip] from [PyPI]
 pip install pytest-elk-reporter
 ```
 
-### ElasticSearch configuration
+### Elasticsearch configuration
 
-We need this auto_create_index enable for the indexes that are going to be used,
+We need this `auto_create_index` setting enabled for the indexes that are going to be used,
 since we don't have code to create the indexes, this is the default
 
 ```bash
@@ -50,7 +50,7 @@ curl -X PUT "localhost:9200/_cluster/settings" -H 'Content-Type: application/jso
 '
 ```
 
-For more info on this elasticsearch feature check their [index documention](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-creation)
+For more info on this Elasticsearch feature check their [index documention](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#index-creation)
 
 ## Usage
 
@@ -90,11 +90,11 @@ es_index_name = test_data
 ```
 
 see [pytest docs](https://docs.pytest.org/en/latest/customize.html)
-for more about how to configure using .ini files
+for more about how to configure pytest using .ini files
 
 ### Collect context data for the whole session
 
-For example, with this I'll be able to build a dash board per version
+In this example, I'll be able to build a dashboard for each version:
 
 ```python
 import pytest
@@ -102,9 +102,9 @@ import pytest
 @pytest.fixture(scope="session", autouse=True)
 def report_formal_version_to_elk(request):
     """
-    Append my own data specific, for example which of the code uner test is used
+    Append my own data specific, for example which of the code under test is used
     """
-    # TODO: take it programticly of of the code under test...
+    # TODO: programmatically set to the version of the code under test...
     my_data = {"formal_version": "1.0.0-rc2" }
 
     elk = request.config.pluginmanager.get_plugin("elk-reporter-runtime")
@@ -112,6 +112,7 @@ def report_formal_version_to_elk(request):
 ```
 
 ### Collect data for specific tests
+
 
 ```python
 import requests
@@ -121,11 +122,12 @@ def test_my_service_and_collect_timings(request, elk_reporter):
     assert response.status_code == 200
 
     elk_reporter.append_test_data(request, {"do_something_response_time": response.elapsed.total_seconds() })
-    # now doing response time per version dashboard quite easy
-    # and yeah, it's not exactly real usable metric, it's just an example...
+    # now, a dashboard showing response time by version should be quite easy
+    # and yeah, it's not exactly a real usable metric, but it's just one example...
 ```
 
-Or via `record_property` built-in fixture (that is normally used to collect data into the junitxml):
+Or via the `record_property` built-in fixture (that is normally used to collect data into junit.xml reports):
+
 ```python
 import requests
 
@@ -134,19 +136,17 @@ def test_my_service_and_collect_timings(record_property):
     assert response.status_code == 200
 
     record_property("do_something_response_time", response.elapsed.total_seconds())
-    # now doing response time per version dashboard quite easy
-    # and yeah, it's not exactly real usable metric, it's just an example...
 ```
 
-## Split tests base on history
+## Split tests based on their duration histories
 
-Cool thing that can be done now that you have history of the tests
-is to split the test base on their actually runtime when passing.
-for integration test which might be long (minutes to hours),
-this would be priceless.
+One cool thing that can be done now that you have a history of the tests,
+is to split the tests based on their actual runtime when passing.
+For long-running integration tests, this is priceless.
 
-In this example we going to split the run in maximum 4min slices
-while any test that doesn't have history information would be assumed to be 60sec long
+In this example, we're going to split the run into a maximum of 4 min slices.
+Any test that doesn't have history information is assumed to be 60 sec long.
+
 ```bash
 # pytest --collect-only --es-splice --es-max-splice-time=4 --es-default-test-time=60
 ...
@@ -165,7 +165,7 @@ test_history_slices.py::test_should_pass_3
 test_history_slices.py::test_with_history_data
 test_history_slices.py::test_that_failed
 
-### now we can run the each slice on it's own machines
+### now we can run each slice on its own machine
 ### on machine1
 # pytest $(cat include000.txt)
 
@@ -175,7 +175,7 @@ test_history_slices.py::test_that_failed
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [`tox`][tox], please ensure
+Contributions are very welcome. Tests can be run with [`tox`][tox]. Please ensure
 the coverage at least stays the same before you submit a pull request.
 
 ## License

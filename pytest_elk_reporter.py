@@ -16,6 +16,7 @@ import six
 import pytest
 import requests
 from _pytest.runner import pytest_runtest_makereport as _makereport
+from requests.exceptions import HTTPError
 
 
 LOGGER = logging.getLogger("elk-reporter")
@@ -169,13 +170,16 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
 
     @property
     def es_auth(self):
-        return self.es_username, self.es_password
+        result = (self.es_username, self.es_password)
+        if result == ("", ""):
+            result = None
+        return result
 
     @property
     def es_url(self):
-        if self.es_address.startswith("http"):
+        if self.es_address.startswith("https"):
             return "{0.es_address}".format(self)
-        return "http://{0.es_address}".format(self)
+        return "https://{0.es_address}".format(self)
 
     def append_test_data(self, request, test_data):
         self.test_data[request.node.nodeid].update(**test_data)
@@ -276,7 +280,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
 
     def pytest_sessionfinish(self):
         if not self.config.getoption("collectonly"):
-            test_data = dict(summery=True, stats=self.stats, **self.session_data)
+            test_data = dict(summary=True, stats=self.stats, **self.session_data)
             self.post_to_elasticsearch(test_data)
 
     def pytest_terminal_summary(self, terminalreporter):
@@ -293,7 +297,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         test_data = dict(
             timestamp=datetime.datetime.utcnow().isoformat(),
             outcome="internal-error",
-            faiure_message=excrepr,
+            failure_message=excrepr,
             **self.session_data,
         )
         self.post_to_elasticsearch(test_data)
@@ -306,8 +310,8 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
                     url, json=test_data, auth=self.es_auth, timeout=self.es_timeout
                 )
                 res.raise_for_status()
-            except Exception as ex:  # pylint: disable=broad-except
-                LOGGER.warning("Failed to POST to elasticsearch: [%s]", str(ex))
+            except HTTPError as http_err:  # pylint: disable=broad-except
+                raise http_err
 
     def fetch_test_duration(
         self, collected_test_list, default_time_sec=120.0, max_workers=20

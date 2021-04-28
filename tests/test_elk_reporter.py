@@ -447,3 +447,57 @@ def test_marks(testdir, requests_mock):  # pylint: disable=redefined-outer-name
 
     report = json.loads(requests_mock.request_history[0].text)
     assert set(report["markers"]) == {"module_level", "class_level", "method_level"}
+
+
+def test_post_reports(testdir, requests_mock):  # pylint: disable=redefined-outer-name
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        def test_1(elk_reporter):
+            assert elk_reporter.es_post_reports
+        """
+    )
+
+    result = testdir.runpytest(
+        "--es-address=127.0.0.1:9200", "--es-post-reports", "-s", "-v"
+    )
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    assert (
+        requests_mock.called
+    ), "Requests are made to Elasticsearch when es_post_reports is True"
+
+
+def test_no_post_reports(
+    testdir, requests_mock
+):  # pylint: disable=redefined-outer-name
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        def test_1(elk_reporter):
+            assert not elk_reporter.es_post_reports
+        """
+    )
+
+    result = testdir.runpytest(
+        "--es-address=127.0.0.1:9200", "--es-no-post-reports", "-s", "-v"
+    )
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    assert (
+        not requests_mock.called
+    ), "Requests are not made to Elasticsearch when es_post_reports is False"

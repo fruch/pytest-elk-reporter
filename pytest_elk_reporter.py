@@ -29,6 +29,23 @@ def pytest_runtest_makereport(item, call):
 
 def pytest_addoption(parser):
     group = parser.getgroup("elk-reporter")
+
+    group.addoption(
+        "--es-post-reports",
+        action="store_true",
+        dest="es_post_reports",
+        default=None,
+        help="Post reports to Elasticsearch",
+    )
+
+    group.addoption(
+        "--es-no-post-reports",
+        action="store_false",
+        dest="es_post_reports",
+        default=None,
+        help="Don't post reports to Elasticsearch",
+    )
+
     group.addoption(
         "--es-address",
         action="store",
@@ -132,6 +149,11 @@ def get_username():
 
 class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
     def __init__(self, config):
+
+        if config.getoption("es_post_reports") is not None:
+            self.es_post_reports = config.getoption("es_post_reports")
+        else:  # default to True
+            self.es_post_reports = True
         self.es_address = config.getoption("es_address") or config.getini("es_address")
         self.es_username = config.getoption("es_username") or config.getini(
             "es_username"
@@ -299,7 +321,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.post_to_elasticsearch(test_data)
 
     def post_to_elasticsearch(self, test_data):
-        if self.es_address:
+        if self.es_address and self.es_post_reports:
             try:
                 url = "{0.es_url}/{0.es_index_name}/_doc".format(self)
                 res = requests.post(

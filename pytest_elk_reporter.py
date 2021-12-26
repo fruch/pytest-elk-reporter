@@ -115,11 +115,10 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     # prevent opening elk-reporter on slave nodes (xdist)
-    if not hasattr(config, "slaveinput"):
-
-        config.elk = ElkReporter(config)
-        config.elk.es_index_name = config.getini("es_index_name")
-        config.pluginmanager.register(config.elk, "elk-reporter-runtime")
+    config.elk = ElkReporter(config)
+    config.elk.is_slave = hasattr(config, "slaveinput")
+    config.elk.es_index_name = config.getini("es_index_name")
+    config.pluginmanager.register(config.elk, "elk-reporter-runtime")
 
 
 def pytest_unconfigure(config):
@@ -184,10 +183,13 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             ],
             0,
         )
-        self.session_data = dict(username=get_username(), hostname=socket.gethostname())
+        self.session_data = dict()
+        self.session_data["username"] = get_username()
+        self.session_data["hostname"] = socket.gethostname()
         self.test_data = defaultdict(dict)
         self.reports = {}
         self.config = config
+        self.is_slave = False
 
     @property
     def es_auth(self):
@@ -281,7 +283,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             outcome=outcome,
             duration=item_report.duration,
             markers=item_report.keywords,
-            **self.session_data,
+            **self.session_data
         )
         test_data.update(self.test_data[item_report.nodeid])
         del self.test_data[item_report.nodeid]
@@ -316,12 +318,12 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             timestamp=datetime.datetime.utcnow().isoformat(),
             outcome="internal-error",
             faiure_message=excrepr,
-            **self.session_data,
+            **self.session_data
         )
         self.post_to_elasticsearch(test_data)
 
     def post_to_elasticsearch(self, test_data):
-        if self.es_address and self.es_post_reports:
+        if self.es_address and self.es_post_reports and not self.is_slave:
             try:
                 url = "{0.es_url}/{0.es_index_name}/_doc".format(self)
                 res = requests.post(
@@ -403,14 +405,16 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
                 try:
                     os.remove(os.path.join(root_dir, filename))
                 except OSError:
-                    print(f"Error while deleting file {filename}")
+                    print("Error while deleting file {}".format(filename))
 
     @staticmethod
     def split_files_test_list(outputdir, slices):
         for i, current_slice in enumerate(slices):
             print(
-                f"{i}: {datetime.timedelta(0, current_slice['total'])} "
-                f"- {len(current_slice['tests'])} - {current_slice['tests']}"
+                "{}: {} ".format(i, datetime.timedelta(0, current_slice["total"]))
+                + "- {} - {}".format(
+                    len(current_slice["tests"]), current_slice["tests"]
+                )
             )
             include_filename = os.path.join(outputdir, "include_%03d.txt" % i)
 
@@ -524,6 +528,12 @@ def git_data(request):
     """
     Append git information into results session
     """
+
+    try:
+        from subprocess import DEVNULL  # py3k
+    except ImportError:
+        DEVNULL = open(os.devnull, "wb")
+
     git_info = dict()
     cmds = (
         ("git_commit_oneline", "git log --oneline  -1 --no-decorate"),
@@ -536,7 +546,7 @@ def git_data(request):
     for key, command in cmds:
         try:
             git_info[key] = (
-                subprocess.check_output(command, shell=True, stderr=subprocess.DEVNULL)
+                subprocess.check_output(command, shell=True, stderr=DEVNULL)
                 .decode("utf-8")
                 .strip()
             )

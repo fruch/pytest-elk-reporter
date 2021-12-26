@@ -26,7 +26,7 @@ def test_history_slices(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*Function test_should_pass_1*"])
-    assert "test_history_slices.py::test_that_failed" in str(result.stdout)
+    result.stdout.fnmatch_lines(["*test_history_slices.py::test_that_failed*"])
 
     # expect two specific slices
     result.stdout.fnmatch_lines(["*0: 0:04:00*"])
@@ -35,10 +35,10 @@ def test_history_slices(testdir):
     assert result.ret == 0
 
     # corresponding slice files, should exist
-    with open(testdir.tmpdir / "include_000.txt") as slice_file:
+    with open(str(testdir.tmpdir / "include_000.txt")) as slice_file:
         test_set_one = set(slice_file.read().splitlines())
 
-    with open(testdir.tmpdir / "include_001.txt") as slice_file:
+    with open(str(testdir.tmpdir / "include_001.txt")) as slice_file:
         test_set_two = set(slice_file.read().splitlines())
 
     assert test_set_one | test_set_two == {
@@ -57,4 +57,5 @@ def test_history_slices(testdir):
         "--es-slices",
         "--es-max-splice-time=4",
         "--es-address=127.0.0.1:9200",
+        "--log-cli-level=debug",
     )

@@ -13,9 +13,9 @@ jobs:
         # https://help.github.com/articles/virtual-environments-for-github-actions
         platform:
           - ubuntu-latest  # ubuntu-18.04
-          - macos-latest  # macOS-10.14
-          - windows-latest  # windows-2019
-        python-version: [3.6, 3.7, 3.8, 3.9, pypy-3.6, pypy-3.7]
+          # - macos-latest # macOS-10.14 casing trouble for requests-mock
+          # - windows-latest  # windows-2019 causing trouble for the test_xdist
+        python-version: [2.7, 3.6, 3.7, 3.8, 3.9, '3.10']
 
     steps:
     - uses: actions/checkout@v1

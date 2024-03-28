@@ -317,7 +317,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         test_data = dict(
             timestamp=datetime.datetime.utcnow().isoformat(),
             outcome="internal-error",
-            faiure_message=excrepr,
+            faiure_message=str(excrepr),
             **self.session_data
         )
         self.post_to_elasticsearch(test_data)

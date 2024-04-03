@@ -92,16 +92,16 @@ def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-na
 
     last_report = json.loads(requests_mock.request_history[-1].text)
     assert last_report["stats"] == {
-        u"error": 1,
-        u"failure": 2,
-        u"failure & error": 1,
-        u"passed": 0,
-        u"skipped & error": 1,
-        u"passed & error": 1,
-        u"skipped": 3,
-        u"xfailed": 1,
-        u"xpass": 1,
-        u"error & error": 0,
+        "error": 1,
+        "failure": 2,
+        "failure & error": 1,
+        "passed": 0,
+        "skipped & error": 1,
+        "passed & error": 1,
+        "skipped": 3,
+        "xfailed": 1,
+        "xpass": 1,
+        "error & error": 0,
     }
 
 

@@ -7,3 +7,4 @@ pytest-cov
 tox
 wheel>=0.33.0
 pytest-xdist
+six

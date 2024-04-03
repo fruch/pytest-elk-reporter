@@ -16,15 +16,14 @@ repos:
     rev: v2.3.1
     hooks:
     -   id: pylint
-        name: pylint38
-        language_version: python3.8
+        name: pylint
         additional_dependencies:
           - pytest
           - requests
           - requests-mock
+          - six
 
 -   repo: https://github.com/python/black
     rev: stable
     hooks:
     - id: black
-      language_version: python3.8

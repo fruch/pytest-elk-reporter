@@ -52,13 +52,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Build sdist
-        run: python setup.py sdist
-
-      - name: Build bdist_wheel
+      - name: Build package
         run: |
-          pip install wheel
-          python setup.py bdist_wheel
+          pip install build
+          python -m build
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@master

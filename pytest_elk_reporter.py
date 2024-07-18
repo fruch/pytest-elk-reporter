@@ -187,7 +187,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.session_data["username"] = get_username()
         self.session_data["hostname"] = socket.gethostname()
         self.test_data = defaultdict(dict)
-        self.reports = {}
+        self.reports = defaultdict(list)
         self.config = config
         self.is_slave = False
 
@@ -208,13 +208,13 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         nodeid = getattr(report_item, "nodeid", report_item)
         # local hack to handle xdist report order
         slavenode = getattr(report_item, "node", None)
-        self.reports[nodeid, slavenode] = (report_item, outcome)
+        self.reports[nodeid, slavenode].append((report_item, outcome))
 
-    def get_report(self, report_item):
+    def get_reports(self, report_item):
         nodeid = getattr(report_item, "nodeid", report_item)
         # local hack to handle xdist report order
         slavenode = getattr(report_item, "node", None)
-        return self.reports.get((nodeid, slavenode), None)
+        return self.reports.get((nodeid, slavenode), [])
 
     @staticmethod
     def get_failure_messge(item_report):
@@ -264,15 +264,16 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         if report.when == "teardown":
             # in xdist, report only on worker nodes
             if self.get_worker_id() != "master":
-                old_report = self.get_report(report)
-                if report.passed and old_report:
-                    self.report_test(old_report[0], old_report[1])
-                if report.failed and old_report:
-                    self.report_test(
-                        report, old_report[1] + " & error", old_report=old_report[0]
-                    )
-                if report.skipped:
-                    self.report_test(report, "skipped")
+                old_reports = self.get_reports(report)
+                for old_report in old_reports:
+                    if report.passed and old_report:
+                        self.report_test(old_report[0], old_report[1])
+                    if report.failed and old_report:
+                        self.report_test(
+                            report, old_report[1] + " & error", old_report=old_report[0]
+                        )
+                    if report.skipped:
+                        self.report_test(report, "skipped")
 
     def report_test(self, item_report, outcome, old_report=None):
         self.stats[outcome] += 1
@@ -285,6 +286,9 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             markers=item_report.keywords,
             **self.session_data
         )
+        context = getattr(item_report, "context", None)
+        if context:
+            test_data.update(subtest=context.msg)
         test_data.update(self.test_data[item_report.nodeid])
         del self.test_data[item_report.nodeid]
 

@@ -67,6 +67,12 @@ def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-na
         def test_skip_in_teardown(skip_in_teardown):
             pass
 
+        def test_failing_subtests(subtests):
+            with subtests.test("failed subtest"):
+                raise Exception("should fail")
+            with subtests.test("succcess subtest"):
+                pass
+
     """
     )
 
@@ -93,12 +99,12 @@ def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-na
     last_report = json.loads(requests_mock.request_history[-1].text)
     assert last_report["stats"] == {
         "error": 1,
-        "failure": 2,
+        "failure": 3,
         "failure & error": 1,
-        "passed": 0,
+        "passed": 2,
         "skipped & error": 1,
         "passed & error": 1,
-        "skipped": 3,
+        "skipped": 4,
         "xfailed": 1,
         "xpass": 1,
         "error & error": 0,
@@ -501,3 +507,47 @@ def test_no_post_reports(
     assert (
         not requests_mock.called
     ), "Requests are not made to Elasticsearch when es_post_reports is False"
+
+
+def test_subtests(testdir, requests_mock):  # pylint: disable=redefined-outer-name
+    """Make sure subtests are identified and reported."""
+
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        def test_failing_subtests(subtests):
+            with subtests.test("failed subtest"):
+                raise Exception("should fail")
+            with subtests.test("success subtest"):
+                pass
+
+    """
+    )
+    # run pytest with the following cmd args
+    result = testdir.runpytest("--es-address=127.0.0.1:9200", "-v")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_failing_subtests * SUBFAIL*"])
+    result.stdout.fnmatch_lines(["*::test_failing_subtests * SUBPASS*"])
+    result.stdout.fnmatch_lines(["*::test_failing_subtests PASSED*"])
+
+    # make sure that that we get a '1' exit code for the testsuite
+    assert result.ret == 1
+
+    # validate each subtest is being reported on its own
+    report = json.loads(requests_mock.request_history[-2].text)
+    assert report["name"] == "test_subtests.py::test_failing_subtests"
+    assert "subtest" not in report
+    assert report["outcome"] == "passed"
+
+    report = json.loads(requests_mock.request_history[-3].text)
+    assert report["name"] == "test_subtests.py::test_failing_subtests"
+    assert report["subtest"] == "success subtest"
+    assert report["outcome"] == "passed"
+
+    report = json.loads(requests_mock.request_history[-4].text)
+    assert report["name"] == "test_subtests.py::test_failing_subtests"
+    assert report["subtest"] == "failed subtest"
+    assert report["outcome"] == "failure"

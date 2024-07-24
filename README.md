@@ -60,6 +60,9 @@ For more info on this Elasticsearch feature check their [index documention](http
 pytest --es-address 127.0.0.1:9200
 # or if you need user/password to authenticate
 pytest --es-address my-elk-server.io:9200 --es-username fruch --es-password 'passwordsarenicetohave'
+
+# or with api key (see https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api-create-api-key.html)
+pytest --es-address my-elk-server.io:9200 --es-api-key 'VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw=='
 ```
 
 ### Configure from code (ideally in conftest.py)
@@ -71,10 +74,12 @@ def pytest_plugin_registered(plugin, manager):
     if isinstance(plugin, ElkReporter):
       # TODO: get credentials in more secure fashion programmatically, maybe AWS secrets or the likes
       # or put them in plain-text in the code... what can ever go wrong...
+      plugin.es_index_name = 'test_data'
       plugin.es_address = "my-elk-server.io:9200"
       plugin.es_user = 'fruch'
       plugin.es_password = 'passwordsarenicetohave'
-      plugin.es_index_name = 'test_data'
+      # or use api key (see https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api-create-api-key.html
+      plugin.es_api_key = 'VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw=='
 
 ```
 
@@ -87,6 +92,9 @@ es_address = my-elk-server.io:9200
 es_user = fruch
 es_password = passwordsarenicetohave
 es_index_name = test_data
+
+# or with api key (see https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api-create-api-key.html)
+es_api_key = VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw==
 ```
 
 see [pytest docs](https://docs.pytest.org/en/latest/customize.html)

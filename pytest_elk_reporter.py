@@ -11,6 +11,7 @@ from collections import defaultdict
 import pprint
 import fnmatch
 import concurrent.futures
+from typing import Any
 
 import six
 import pytest
@@ -71,6 +72,14 @@ def pytest_addoption(parser):
     )
 
     group.addoption(
+        "--es-api-key",
+        action="store",
+        dest="es_api_key",
+        default=None,
+        help="Elasticsearch api key in base64 format",
+    )
+
+    group.addoption(
         "--es-timeout",
         action="store",
         dest="es_timeout",
@@ -106,6 +115,9 @@ def pytest_addoption(parser):
     parser.addini("es_address", help="Elasticsearch address", default=None)
     parser.addini("es_username", help="Elasticsearch username", default=None)
     parser.addini("es_password", help="Elasticsearch password", default=None)
+    parser.addini(
+        "es_api_key", help="Elasticsearch api key in base64 format", default=None
+    )
     parser.addini(
         "es_index_name",
         help="name of the elasticsearch index to save results to",
@@ -154,6 +166,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         else:  # default to True
             self.es_post_reports = True
         self.es_address = config.getoption("es_address") or config.getini("es_address")
+        self.es_api_key = config.getoption("es_api_key") or config.getini("es_api_key")
         self.es_username = config.getoption("es_username") or config.getini(
             "es_username"
         )
@@ -192,8 +205,12 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.is_slave = False
 
     @property
-    def es_auth(self):
-        return self.es_username, self.es_password
+    def es_auth_args(self) -> dict[str, Any]:
+        if self.es_api_key:
+            return dict(headers={"Authorization": f"ApiKey {self.es_api_key}"})
+        if self.es_username and self.es_password:
+            return dict(auth=(self.es_username, self.es_password))
+        return {}
 
     @property
     def es_url(self):
@@ -283,7 +300,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             outcome=outcome,
             duration=item_report.duration,
             markers=item_report.keywords,
-            **self.session_data
+            **self.session_data,
         )
         test_data.update(self.test_data[item_report.nodeid])
         del self.test_data[item_report.nodeid]
@@ -318,7 +335,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             timestamp=datetime.datetime.utcnow().isoformat(),
             outcome="internal-error",
             faiure_message=str(excrepr),
-            **self.session_data
+            **self.session_data,
         )
         self.post_to_elasticsearch(test_data)
 
@@ -327,7 +344,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             try:
                 url = "{0.es_url}/{0.es_index_name}/_doc".format(self)
                 res = requests.post(
-                    url, json=test_data, auth=self.es_auth, timeout=self.es_timeout
+                    url, json=test_data, timeout=self.es_timeout, **self.es_auth_args
                 )
                 res.raise_for_status()
             except Exception as ex:  # pylint: disable=broad-except
@@ -363,7 +380,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             }
             try:
                 res = session.post(
-                    url, json=body, auth=self.es_auth, timeout=self.es_timeout
+                    url, json=body, timeout=self.es_timeout, **self.es_auth_args
                 )
                 res.raise_for_status()
                 return dict(

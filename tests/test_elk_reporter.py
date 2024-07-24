@@ -87,7 +87,7 @@ def test_failures(testdir, requests_mock):  # pylint: disable=redefined-outer-na
     result.stdout.fnmatch_lines(["*::test_failure_in_fin_2 FAILED*"])
     result.stdout.fnmatch_lines(["*::test_failure_in_fin_3 ERROR*"])
 
-    # make sure that that we get a '1' exit code for the testsuite
+    # make sure that we get a '1' exit code for the testsuite
     assert result.ret == 1
 
     last_report = json.loads(requests_mock.request_history[-1].text)
@@ -130,7 +130,7 @@ def test_es_configuration(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_sth PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -152,7 +152,7 @@ def test_bad_es_configuration(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_sth PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -177,7 +177,7 @@ def test_jenkins_env_collection(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_collection_elk PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -197,7 +197,7 @@ def test_travis_env_collection(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_collection_elk PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -217,7 +217,7 @@ def test_circle_env_collection(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_collection_elk PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -237,11 +237,11 @@ def test_github_env_collection(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_collection_elk PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
-def test_setup_es_from_code(testdir):
+def test_setup_es_from_code(testdir, requests_mock):
     # create a temporary pytest test module
     testdir.makepyfile(
         """
@@ -250,7 +250,7 @@ def test_setup_es_from_code(testdir):
         @pytest.fixture(scope='session', autouse=True)
         def configure_es(elk_reporter):
             elk_reporter.es_address = "127.0.0.1:9200"
-            elk_reporter.es_user = 'test'
+            elk_reporter.es_username = 'test'
             elk_reporter.es_password = 'mypassword'
             elk_reporter.es_index_name = 'test_data'
 
@@ -265,6 +265,36 @@ def test_setup_es_from_code(testdir):
     result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
+    auth_header = requests_mock.request_history[-1].headers.get("Authorization")
+    assert "Basic" in auth_header
+
+
+def test_setup_es_api_key_from_code(testdir, requests_mock):
+    # create a temporary pytest test module
+    testdir.makepyfile(
+        """
+        import pytest
+
+        @pytest.fixture(scope='session', autouse=True)
+        def configure_es(elk_reporter):
+            elk_reporter.es_address = "127.0.0.1:9200"
+            elk_reporter.es_api_key = 'VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw=='
+            elk_reporter.es_index_name = 'test_data'
+
+        def test_should_pass():
+            pass
+        """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+
+    # fnmatch_lines does an assertion internally
+    result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+
+    auth_header = requests_mock.request_history[-1].headers.get("Authorization")
+    assert "ApiKey" in auth_header
 
 
 def test_git_info(testdir, requests_mock):  # pylint: disable=redefined-outer-name
@@ -293,7 +323,7 @@ def test_git_info(testdir, requests_mock):  # pylint: disable=redefined-outer-na
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     last_report = json.loads(requests_mock.request_history[-1].text)
@@ -324,7 +354,7 @@ def test_append_test_data(
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
     result.stdout.fnmatch_lines(["*::test_2 PASSED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     first_report = json.loads(requests_mock.request_history[0].text)
@@ -355,7 +385,7 @@ def test_setup_es_from_ini(testdir):
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_should_pass PASSED*"])
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -383,7 +413,7 @@ def test_marker_collection(
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
     result.stdout.fnmatch_lines(["*::test_2 PASSED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     first_report = json.loads(requests_mock.request_history[0].text)
@@ -412,7 +442,7 @@ def test_user_properties(
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     report = json.loads(requests_mock.request_history[0].text)
@@ -442,7 +472,7 @@ def test_marks(testdir, requests_mock):  # pylint: disable=redefined-outer-name
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     report = json.loads(requests_mock.request_history[0].text)
@@ -467,7 +497,7 @@ def test_post_reports(testdir, requests_mock):  # pylint: disable=redefined-oute
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     assert (
@@ -495,7 +525,7 @@ def test_no_post_reports(
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["*::test_1 PASSED*"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
     assert (

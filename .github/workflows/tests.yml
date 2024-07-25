@@ -40,6 +40,9 @@ jobs:
   publish:
     needs: [test]
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     # alternatively, to publish when a GitHub Release is created, use the following rule:
@@ -58,7 +61,6 @@ jobs:
           python -m build
 
       - name: Publish package
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true

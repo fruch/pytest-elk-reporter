@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import os
-import getpass
-import socket
+import concurrent.futures
 import datetime
+import fnmatch
+import getpass
 import logging
+import os
+import pprint
+import socket
 import subprocess
 from collections import defaultdict
-import pprint
-import fnmatch
-import concurrent.futures
 from typing import Any
 
-import six
 import pytest
 import requests
+import six
 from _pytest.runner import pytest_runtest_makereport as _makereport
-
 
 LOGGER = logging.getLogger("elk-reporter")
 
@@ -45,6 +44,14 @@ def pytest_addoption(parser):
         dest="es_post_reports",
         default=None,
         help="Don't post reports to Elasticsearch",
+    )
+
+    group.addoption(
+        "--es-no-post-reports-summary",
+        action="store_true",
+        dest="es_no_post_reports_summary",
+        default=False,
+        help="Don't post reports summary to Elasticsearch",
     )
 
     group.addoption(
@@ -165,6 +172,7 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
             self.es_post_reports = config.getoption("es_post_reports")
         else:  # default to True
             self.es_post_reports = True
+        self.es_no_post_reports_summary = config.getoption("es_no_post_reports_summary")
         self.es_address = config.getoption("es_address") or config.getini("es_address")
         self.es_api_key = config.getoption("es_api_key") or config.getini("es_api_key")
         self.es_username = config.getoption("es_username") or config.getini(
@@ -320,7 +328,10 @@ class ElkReporter(object):  # pylint: disable=too-many-instance-attributes
         self.session_data["session_start_time"] = datetime.datetime.utcnow().isoformat()
 
     def pytest_sessionfinish(self):
-        if not self.config.getoption("collectonly"):
+        if (
+            not self.config.getoption("collectonly")
+            and not self.es_no_post_reports_summary
+        ):
             test_data = dict(summery=True, stats=self.stats, **self.session_data)
             self.post_to_elasticsearch(test_data)
 
